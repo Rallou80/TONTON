@@ -75,6 +75,10 @@ class CasinoControlView(discord.ui.View):
         if role:
             await interaction.guild.me.add_roles(role)
 
+        croupier_role = interaction.guild.get_role(ROLE_CROUPIER_ID)
+        if croupier_role:
+            await interaction.user.add_roles(croupier_role)
+
         embed = discord.Embed(
             title="✅ Annonce d'Ouverture",
             description="**Le Blouson d'TONTON** est officiellement ouvert !\n\nDécouvrez nos nouvelles créations sur-mesure, des pièces uniques conçues avec passion. 🧵🪡\n\nL’atelier est prêt, il ne manque plus que vous. 👔✨\n\n**Le Blouson d'TONTON.**",
@@ -94,6 +98,10 @@ class CasinoControlView(discord.ui.View):
         role = interaction.guild.get_role(ROLE_CASINO_ID)
         if role:
             await interaction.guild.me.remove_roles(role)
+
+        croupier_role = interaction.guild.get_role(ROLE_CROUPIER_ID)
+        if croupier_role:
+            await interaction.user.remove_roles(croupier_role)
 
         embed = discord.Embed(
             title="🚫 Annonce de Fermeture",
