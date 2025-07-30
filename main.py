@@ -28,7 +28,7 @@ SALON_LOGS_SERVICE_ID = 1399859851529556149 #prise de service logs
 
 GIF_URL = "https://raw.githubusercontent.com/Rallou80/TONTON/main/royal.png"
 TONTON_IMAGE_URL = "https://raw.githubusercontent.com/Rallou80/TONTON/main/tontonGOAT.png"
-TONTON_IMAGE = "https://raw.githubusercontent.com/Rallou80/TONTON/main/tonton.png"
+TONTON_IMAGE = "https://raw.githubusercontent.com/Rallou80/TONTON/main/TONTON.png"
 
 # ==== INTENTS & BOT SETUP ====
 intents = discord.Intents.default()
@@ -80,7 +80,7 @@ class CasinoControlView(discord.ui.View):
             description="**Le Blouson d'TONTON** est officiellement ouvert !\n\nDécouvrez nos nouvelles créations sur-mesure, des pièces uniques conçues avec passion. 🧵🪡\n\nL’atelier est prêt, il ne manque plus que vous. 👔✨\n\n**Le Blouson d'TONTON.**",
             color=discord.Color.green()
         )
-        embed.set_thumbnail(url=TONTON_IMAGE_URL)
+        embed.set_thumbnail(url=TONTON_IMAGE)
         channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
         if channel:
             await self.delete_last_royal_announcement(channel)
@@ -100,7 +100,7 @@ class CasinoControlView(discord.ui.View):
             description="**Le Blouson d'TONTON** ferme les portes de son atelier pour le moment.\n\nMerci à tous pour votre présence. Nous reviendrons très bientôt avec de nouvelles pièces ! 🧶🧥\n\nUn peu de repos pour mieux coudre demain. 🛌💤\n\n**Le Blouson d'TONTON.**",
             color=discord.Color.red()
         )
-        embed.set_image(url=TONTON_IMAGE_URL)
+        embed.set_image(url=TONTON_IMAGE)
         channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
         if channel:
             await self.delete_last_royal_announcement(channel)
