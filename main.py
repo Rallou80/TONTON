@@ -80,7 +80,7 @@ class CasinoControlView(discord.ui.View):
             description="**Le Blouson d'TONTON** est officiellement ouvert !\n\nDécouvrez nos nouvelles créations sur-mesure, des pièces uniques conçues avec passion. 🧵🪡\n\nL’atelier est prêt, il ne manque plus que vous. 👔✨\n\n**Le Blouson d'TONTON.**",
             color=discord.Color.green()
         )
-        embed.set_thumbnail(url=TONTON_IMAGE)
+        embed.set_thumbnail(url=TONTON_IMAGE_URL)
         channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
         if channel:
             await self.delete_last_royal_announcement(channel)
@@ -119,8 +119,7 @@ class CasinoControlView(discord.ui.View):
             description="**Le Blouson d'TONTON** marque une courte **pause** dans l’atelier.\n\nUn moment pour se recentrer avant de reprendre le fil. ☕️🧷\n\nRestez connectés, nos créations reviennent très bientôt. 🧵⏱️\n\n**Le Blouson d'TONTON.**",
             color=discord.Color.blurple()
         )
-        embed.set_thumbnail(url=TONTON_IMAGE)
-        embed.set_image(url=TONTON_IMAGE)
+        embed.set_image(url=TONTON_IMAGE_URL)
         channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
         if channel:
             await self.delete_last_royal_announcement(channel)
