@@ -591,9 +591,24 @@ class VueRoue(discord.ui.View):
 @bot.tree.command(name="upload", description="Préparer un vêtement à imprimer", guild=discord.Object(id=GUILD_ID))
 async def upload(interaction: discord.Interaction):
     class UploadModal(ui.Modal, title="📥 Ajouter un vêtement"):
-        lien = ui.TextInput(label="Lien de l'image", style=discord.TextStyle.short, required=True)
-        nom = ui.TextInput(label="Nom du vêtement", style=discord.TextStyle.short, required=True)
-        quantite = ui.TextInput(label="Quantité", style=discord.TextStyle.short, required=True)
+        lien = ui.TextInput(
+            label="Lien de l'image",
+            style=discord.TextStyle.short,
+            required=True,
+            placeholder="https://exemple.com/image.png"
+        )
+        nom = ui.TextInput(
+            label="Nom du vêtement",
+            style=discord.TextStyle.short,
+            required=True,
+            placeholder="Exemple : T-shirt bleu"
+        )
+        quantite = ui.TextInput(
+            label="Quantité",
+            style=discord.TextStyle.short,
+            required=True,
+            placeholder="Exemple : 10"
+        )
 
         async def on_submit(self, interaction: discord.Interaction):
             embed = discord.Embed(title="👕 Vêtement à imprimer", color=discord.Color.green())
@@ -606,7 +621,6 @@ async def upload(interaction: discord.Interaction):
             await interaction.response.send_message(embed=embed)
 
     await interaction.response.send_modal(UploadModal())
-
 
 
 
