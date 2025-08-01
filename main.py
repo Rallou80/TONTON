@@ -588,6 +588,27 @@ class VueRoue(discord.ui.View):
 
 # ==== COMMANDES ====
 
+@bot.tree.command(name="upload", description="Préparer un vêtement à imprimer", guild=discord.Object(id=GUILD_ID))
+async def upload(interaction: discord.Interaction):
+    class UploadModal(ui.Modal, title="📥 Ajouter un vêtement"):
+        lien = ui.TextInput(label="Lien de l'image", style=discord.TextStyle.short, required=True)
+        nom = ui.TextInput(label="Nom du vêtement", style=discord.TextStyle.short, required=True)
+        quantite = ui.TextInput(label="Quantité", style=discord.TextStyle.short, required=True)
+
+        async def on_submit(self, interaction: discord.Interaction):
+            embed = discord.Embed(title="👕 Vêtement à imprimer", color=discord.Color.green())
+            embed.set_thumbnail(url=self.lien.value)
+            embed.add_field(name="📋 À copier dans le jeu", value=f"```\n/vetement\n{self.lien.value}\n{self.nom.value}\n{self.quantite.value}\n```", inline=False)
+            embed.add_field(name="📎 Lien", value=f"`{self.lien.value}`", inline=False)
+            embed.add_field(name="🏷️ Nom", value=f"`{self.nom.value}`", inline=True)
+            embed.add_field(name="🔢 Quantité", value=f"`{self.quantite.value}`", inline=True)
+            embed.set_footer(text=f"Ajouté par : {interaction.user.display_name}")
+            await interaction.response.send_message(embed=embed)
+
+    await interaction.response.send_modal(UploadModal())
+
+
+
 @bot.tree.command(name="annonce", description="Affiche les boutons de gestion du Blouson d'TONTON", guild=discord.Object(id=GUILD_ID))
 async def annonce(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
