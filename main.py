@@ -598,14 +598,15 @@ async def upload(interaction: discord.Interaction):
         async def on_submit(self, interaction: discord.Interaction):
             embed = discord.Embed(title="👕 Vêtement à imprimer", color=discord.Color.green())
             embed.set_thumbnail(url=self.lien.value)
-            embed.add_field(name="📋 À copier dans le jeu", value=f"```\n/vetement\n{self.lien.value}\n{self.nom.value}\n{self.quantite.value}\n```", inline=False)
-            embed.add_field(name="📎 Lien", value=f"`{self.lien.value}`", inline=False)
-            embed.add_field(name="🏷️ Nom", value=f"`{self.nom.value}`", inline=True)
-            embed.add_field(name="🔢 Quantité", value=f"`{self.quantite.value}`", inline=True)
+            embed.add_field(name="📋 À copier dans le jeu", value="```\n/vetement\n```", inline=False)
+            embed.add_field(name="📎 Lien", value=f"```\n{self.lien.value}\n```", inline=False)
+            embed.add_field(name="🏷️ Nom", value=f"```\n{self.nom.value}\n```", inline=False)
+            embed.add_field(name="🔢 Quantité", value=f"```\n{self.quantite.value}\n```", inline=False)
             embed.set_footer(text=f"Ajouté par : {interaction.user.display_name}")
             await interaction.response.send_message(embed=embed)
 
     await interaction.response.send_modal(UploadModal())
+
 
 
 
