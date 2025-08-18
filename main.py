@@ -46,16 +46,14 @@ def keep_alive():
     t = threading.Thread(target=run)
     t.start()
 
-# ==== Tickets : utilitaires ====
+# ==== NUMÉROTATION ====
 async def get_next_ticket_number(guild: discord.Guild):
     category = guild.get_channel(CATEGORY_ID)
     if not category:
         return 1
-
     ticket_channels = [ch for ch in category.channels if isinstance(ch, discord.TextChannel) and ch.name.startswith("cmd-")]
     if not ticket_channels:
         return 1
-
     numbers = []
     for ch in ticket_channels:
         try:
@@ -65,67 +63,29 @@ async def get_next_ticket_number(guild: discord.Guild):
             pass
     return max(numbers) + 1 if numbers else 1
 
-
-# ==== VUES ====
-class ChoixCommandeView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.select(
-        placeholder="Choisissez le type de commande",
-        custom_id="commande_type",
-        options=[
-            discord.SelectOption(label="Vêtement", value="vetement"),
-            discord.SelectOption(label="Voiture (UV Nova Life)", value="voiture"),
-        ]
-    )
-    async def select_type(self, interaction: discord.Interaction, select: discord.ui.Select):
-        if select.values[0] == "vetement":
-            options = [
-                discord.SelectOption(label="Costard", value="costard"),
-                discord.SelectOption(label="T-shirt", value="tshirt"),
-                discord.SelectOption(label="Entreprise", value="entreprise"),
-                discord.SelectOption(label="Tatouage", value="tatouage"),
-                discord.SelectOption(label="Autre", value="autre"),
-            ]
-        else:
-            options = [
-                discord.SelectOption(label="Premier", value="premier"),
-                discord.SelectOption(label="Master", value="master"),
-                discord.SelectOption(label="Berlingo Civil", value="berlingo_civil"),
-                discord.SelectOption(label="206", value="206"),
-                discord.SelectOption(label="Range Rover", value="range_rover"),
-                discord.SelectOption(label="C4 Grand Picasso", value="c4_grand_picasso"),
-                discord.SelectOption(label="5008 Civil", value="5008_civil"),
-                discord.SelectOption(label="Mégane IV Civil", value="megane_iv_civil"),
-                discord.SelectOption(label="Dodge Charger 1970", value="dodge_charger_1970"),
-                discord.SelectOption(label="Olympia A7", value="olympia_a7"),
-                discord.SelectOption(label="RX7", value="rx7"),
-                discord.SelectOption(label="V Model S", value="v_model_s"),
-                discord.SelectOption(label="Stellar Coupé", value="stellar_coupe"),
-                discord.SelectOption(label="Premier Limo", value="premier_limo"),
-                discord.SelectOption(label="911", value="911"),
-                discord.SelectOption(label="KAT", value="kat"),
-                discord.SelectOption(label="Dépanneuse", value="depanneuse"),
-                discord.SelectOption(label="FTR", value="ftr"),
-            ]
-
-        view = SousTypeCommandeView(options, select.values[0])
-        await interaction.response.edit_message(content="📑 Sélectionnez le modèle :", view=view)
-
-
-class SousTypeCommandeView(discord.ui.View):
-    def __init__(self, options, type_commande):
+# ==== FORMULAIRE ====
+class CommandeModal(ui.Modal, title="📦 Nouvelle commande"):
+    def __init__(self, type_commande: str):
         super().__init__(timeout=None)
         self.type_commande = type_commande
-        self.add_item(discord.ui.Select(
-            placeholder="Choisissez le modèle",
-            options=options,
-            custom_id="commande_sous_type"
-        ))
 
-    @discord.ui.select(custom_id="commande_sous_type")
-    async def select_modele(self, interaction: discord.Interaction, select: discord.ui.Select):
+        self.desc = ui.TextInput(
+            label="Description de la commande",
+            style=discord.TextStyle.paragraph,
+            required=True,
+            placeholder="Exemple : T-shirt bleu avec logo à gauche..."
+        )
+        self.add_item(self.desc)
+
+        self.liens = ui.TextInput(
+            label="Liens (images, sites...)",
+            style=discord.TextStyle.paragraph,
+            required=False,
+            placeholder="Exemple : https://exemple.com/mon-modele"
+        )
+        self.add_item(self.liens)
+
+    async def on_submit(self, interaction: discord.Interaction):
         guild = interaction.guild
         number = await get_next_ticket_number(guild)
         ticket_name = f"cmd-{number}"
@@ -133,7 +93,7 @@ class SousTypeCommandeView(discord.ui.View):
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True),
-            guild.get_role(STAFF_ROLE_ID): discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
+            guild.get_role(STAFF_ROLE_ID): discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True),
         }
 
         channel = await guild.create_text_channel(
@@ -146,8 +106,9 @@ class SousTypeCommandeView(discord.ui.View):
             title=f"Commande {ticket_name}",
             description=(
                 f"**Client :** {interaction.user.mention}\n"
-                f"**Type :** {select.values[0]}\n\n"
-                "Veuillez détailler votre demande, ajouter un lien si vous en avez, et envoyer vos images ci-dessous."
+                f"**Type :** {self.type_commande}\n"
+                f"**Description :**\n{self.desc.value}\n\n"
+                f"**Liens :**\n{self.liens.value or 'Aucun'}"
             ),
             color=discord.Color.blue()
         )
@@ -157,16 +118,29 @@ class SousTypeCommandeView(discord.ui.View):
         await msg.add_reaction("✅")
         await msg.add_reaction("❌")
 
-        await interaction.response.edit_message(content=f"🎟️ Ticket créé : {channel.mention}", view=None)
+        await interaction.response.send_message(f"🎟️ Ton ticket a été créé : {channel.mention}", ephemeral=True)
 
+# ==== BOUTONS ====
+class ChoixCommandeView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
 
-# ==== Commande /commande ====
-@bot.tree.command(name="commande", description="Ouvrir un ticket de commande", guild=discord.Object(id=GUILD_ID))
+    @discord.ui.button(label="👕 Commande Vêtement", style=discord.ButtonStyle.blurple, custom_id="commande_vetement")
+    async def vetement(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(CommandeModal("Vêtement"))
+
+    @discord.ui.button(label="🚗 Commande Voiture", style=discord.ButtonStyle.green, custom_id="commande_voiture")
+    async def voiture(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(CommandeModal("Voiture"))
+
+# ==== COMMANDE POUR AFFICHER LES BOUTONS ====
+@bot.tree.command(name="commande", description="Afficher le panneau de commandes", guild=discord.Object(id=GUILD_ID))
 async def commande(interaction: discord.Interaction):
-    await interaction.response.send_message("📦 Choisissez le type de votre commande :", view=ChoixCommandeView(), ephemeral=True)
+    if not interaction.user.guild_permissions.manage_messages:
+        return await interaction.response.send_message("❌ Tu n’as pas la permission.", ephemeral=True)
+    await interaction.response.send_message("📦 Cliquez sur un bouton pour ouvrir un ticket :", view=ChoixCommandeView())
 
-
-# ==== Commandes staff pour suivi des tickets ====
+# ==== COMMANDES STAFF ====
 @bot.tree.command(name="2", description="Marquer une commande en cours", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
 async def commande_en_cours(interaction: discord.Interaction, numero: int):
@@ -182,7 +156,6 @@ async def commande_en_cours(interaction: discord.Interaction, numero: int):
     await channel.send(content=f"<@&{STAFF_ROLE_ID}>", embed=embed)
     await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué en cours.", ephemeral=True)
 
-
 @bot.tree.command(name="3", description="Marquer une commande terminée", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
 async def commande_terminee(interaction: discord.Interaction, numero: int):
@@ -197,7 +170,6 @@ async def commande_terminee(interaction: discord.Interaction, numero: int):
     )
     await channel.send(embed=embed)
     await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué terminé.", ephemeral=True)
-
 
 @bot.tree.command(name="del", description="Supprimer un ticket", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
