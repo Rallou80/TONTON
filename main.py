@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands, ui
-from discord.ui import View, Button, Select
+from discord.ui import View, Button, Select # Import manquant corrigé
 import random
 import threading
 from flask import Flask
@@ -9,18 +9,18 @@ import os
 
 # ==== CONFIGURATION ====
 TOKEN = os.getenv("DISCORD_TOKEN")
-GUILD_ID = 1399014657209008168  # id du serveur
+GUILD_ID = 1399014657209008168  #id du serveur
 
-ANNONCE_CHANNEL_ID = 1399018858131624027
-STAFF_ROLE_ID = 1399016778553753731
-CATEGORY_ID = 1399021383262011402
+ANNONCE_CHANNEL_ID = 1399018858131624027  # embed d'ouverture et fermeture
+SALON_CLIENTS_ID = 1399021433325223946    # /sonnette
+ROLE_CROUPIER_ID = 1399857058383138876   #id du rôles à mentionner à la sonnette
+STAFF_ROLE_ID = 1399016778553753731 #id du rôle à ajouter aux tickets
+CATEGORY_ID = 1399021383262011402 # id de la catégorie où sont créer les tickets
 
-ROLE_CASINO_ID = 1399858237599256596
-ROLE_PAUSE_ID = 1399858167852040294
-SALON_ROUE_ID = 1399859154600071199
-SALON_LOGS_ID = 1399859434968322078
-SALON_LOGS_gains_ID = 1399859434968322078
-SALON_LOGS_SERVICE_ID = 1399859851529556149
+ROLE_CASINO_ID = 1399858237599256596 #id du rôle ouverture
+ROLE_PAUSE_ID = 1399858167852040294 #id du rôle pause
+SALON_ROUE_ID = 1399859154600071199 #roue (clients)
+SALON_LOGS_ID = 1399859434968322078 #roue (staff)
 
 GIF_URL = "https://raw.githubusercontent.com/Rallou80/TONTON/main/royal.png"
 TONTON_IMAGE_URL = "https://raw.githubusercontent.com/Rallou80/TONTON/main/tontonGOAT.png"
@@ -46,87 +46,10 @@ def keep_alive():
     t = threading.Thread(target=run)
     t.start()
 
+# ==== Suivie des Tickets ====
+# ====== Commande /commande  ======
 
-# ==== CLASSE : CasinoControlView ====
-class CasinoControlView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    async def remove_pause_role(self, interaction):
-        pause_role = interaction.guild.get_role(ROLE_PAUSE_ID)
-        if pause_role and pause_role in interaction.guild.me.roles:
-            await interaction.guild.me.remove_roles(pause_role)
-
-    async def delete_last_royal_announcement(self, channel: discord.TextChannel):
-        async for message in channel.history(limit=10):
-            if message.author == channel.guild.me and message.embeds:
-                embed = message.embeds[0]
-                if embed.description and "Blouson d'TONTON" in embed.description:
-                    await message.delete()
-                    break
-
-    @discord.ui.button(label="Ouvrir", style=discord.ButtonStyle.success, custom_id="casino_ouvrir")
-    async def open_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.remove_pause_role(interaction)
-        role = interaction.guild.get_role(ROLE_CASINO_ID)
-        if role:
-            await interaction.guild.me.add_roles(role)
-
-        embed = discord.Embed(
-            title="✅ Annonce d'Ouverture",
-            description="**Le Blouson d'TONTON** est officiellement ouvert !",
-            color=discord.Color.green()
-        )
-        embed.set_thumbnail(url=TONTON_IMAGE_URL)
-        channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
-        if channel:
-            await self.delete_last_royal_announcement(channel)
-            await channel.send(embed=embed)
-
-        await interaction.response.send_message("✅ Atelier ouvert et annonce envoyée.", ephemeral=True)
-
-    @discord.ui.button(label="Fermer", style=discord.ButtonStyle.danger, custom_id="casino_fermer")
-    async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.remove_pause_role(interaction)
-        role = interaction.guild.get_role(ROLE_CASINO_ID)
-        if role:
-            await interaction.guild.me.remove_roles(role)
-
-        embed = discord.Embed(
-            title="🚫 Annonce de Fermeture",
-            description="**Le Blouson d'TONTON** ferme les portes pour le moment.",
-            color=discord.Color.red()
-        )
-        embed.set_image(url=TONTON_IMAGE)
-        channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
-        if channel:
-            await self.delete_last_royal_announcement(channel)
-            await channel.send(embed=embed)
-
-        await interaction.response.send_message("🚫 Atelier fermé et annonce envoyée.", ephemeral=True)
-
-    @discord.ui.button(label="Pause", style=discord.ButtonStyle.primary, custom_id="casino_pause")
-    async def pause_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = interaction.guild.get_role(ROLE_PAUSE_ID)
-        if role:
-            await interaction.guild.me.add_roles(role)
-
-        embed = discord.Embed(
-            title="⏸️ Annonce de Pause",
-            description="**Le Blouson d'TONTON** marque une courte pause.",
-            color=discord.Color.blurple()
-        )
-        embed.set_image(url=TONTON_IMAGE_URL)
-        channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
-        if channel:
-            await self.delete_last_royal_announcement(channel)
-            await channel.send(embed=embed)
-
-        await interaction.response.send_message("⏸️ Pause activée et annonce envoyée.", ephemeral=True)
-
-
-# ====== Commande /commande ======
-
+# Fonction utilitaire : trouver prochain numéro de ticket
 async def get_next_ticket_number(guild: discord.Guild):
     category = guild.get_channel(CATEGORY_ID)
     if not category:
@@ -144,7 +67,7 @@ async def get_next_ticket_number(guild: discord.Guild):
         except:
             pass
     return max(numbers) + 1 if numbers else 1
-
+    
 
 class ChoixCommandeView(discord.ui.View):
     def __init__(self):
@@ -220,8 +143,7 @@ class SousTypeCommandeView(discord.ui.View):
         channel = await guild.create_text_channel(
             name=ticket_name,
             category=guild.get_channel(CATEGORY_ID),
-            overwrites=overwrites,
-            topic=str(interaction.user.id)  # stock ID client
+            overwrites=overwrites
         )
 
         embed = discord.Embed(
@@ -242,6 +164,7 @@ class SousTypeCommandeView(discord.ui.View):
         await interaction.response.edit_message(content=f"🎟️ Ticket créé : {channel.mention}", view=None)
 
 
+# ===== Commande /commande =====
 @bot.tree.command(name="commande", description="Ouvrir un ticket de commande", guild=discord.Object(id=GUILD_ID))
 async def commande(interaction: discord.Interaction):
     view = ChoixCommandeView()
@@ -258,10 +181,10 @@ async def commande_en_cours(interaction: discord.Interaction, numero: int):
 
     embed = discord.Embed(
         title=f"Commande CMD-{numero}",
-        description=f"Statut : 🟡 En cours\nClient ping: <@{channel.topic}>",
+        description=f"Statut : 🟡 En cours\nClient ping: {channel.topic or 'inconnu'}",
         color=discord.Color.yellow()
     )
-    await channel.send(content=f"<@&{STAFF_ROLE_ID}> <@{channel.topic}>", embed=embed)
+    await channel.send(content=f"<@&{STAFF_ROLE_ID}>", embed=embed)
     await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué en cours.", ephemeral=True)
 
 
@@ -277,7 +200,7 @@ async def commande_terminee(interaction: discord.Interaction, numero: int):
         description="Statut : 🟢 Terminée\nMerci pour votre confiance !",
         color=discord.Color.green()
     )
-    await channel.send(content=f"<@{channel.topic}> ✅ Votre commande est prête !", embed=embed)
+    await channel.send(embed=embed)
     await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué terminé.", ephemeral=True)
 
 
@@ -290,6 +213,92 @@ async def commande_supprimer(interaction: discord.Interaction, numero: int):
 
     await channel.delete()
     await interaction.response.send_message(f"🗑️ Ticket CMD-{numero} supprimé.", ephemeral=True)
+
+# ==== CLASSE : CasinoControlView (anciennement CasinoView, renommée) ====
+class CasinoControlView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    async def remove_pause_role(self, interaction):
+        pause_role = interaction.guild.get_role(ROLE_PAUSE_ID)
+        if pause_role and pause_role in interaction.guild.me.roles:
+            await interaction.guild.me.remove_roles(pause_role)
+
+    async def delete_last_royal_announcement(self, channel: discord.TextChannel):
+        async for message in channel.history(limit=10):
+            if message.author == channel.guild.me and message.embeds:
+                embed = message.embeds[0]
+                if embed.description and "Blouson d'TONTON" in embed.description:
+                    await message.delete()
+                    break
+
+    @discord.ui.button(label="Ouvrir", style=discord.ButtonStyle.success, custom_id="casino_ouvrir")
+    async def open_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.remove_pause_role(interaction)
+        role = interaction.guild.get_role(ROLE_CASINO_ID)
+        if role:
+            await interaction.guild.me.add_roles(role)
+
+        croupier_role = interaction.guild.get_role(ROLE_CROUPIER_ID)
+        if croupier_role:
+            await interaction.user.add_roles(croupier_role)
+
+        embed = discord.Embed(
+            title="✅ Annonce d'Ouverture",
+            description="**Le Blouson d'TONTON** est officiellement ouvert !\n\nDécouvrez nos nouvelles créations sur-mesure, des pièces uniques conçues avec passion. 🧵🪡\n\nL’atelier est prêt, il ne manque plus que vous. 👔✨\n\n**Le Blouson d'TONTON.**",
+            color=discord.Color.green()
+        )
+        embed.set_thumbnail(url=TONTON_IMAGE_URL)
+        channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
+        if channel:
+            await self.delete_last_royal_announcement(channel)
+            await channel.send(embed=embed)
+
+        await interaction.response.send_message("✅ Atelier ouvert et annonce envoyée.", ephemeral=True)
+
+    @discord.ui.button(label="Fermer", style=discord.ButtonStyle.danger, custom_id="casino_fermer")
+    async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.remove_pause_role(interaction)
+        role = interaction.guild.get_role(ROLE_CASINO_ID)
+        if role:
+            await interaction.guild.me.remove_roles(role)
+
+        croupier_role = interaction.guild.get_role(ROLE_CROUPIER_ID)
+        if croupier_role:
+            await interaction.user.remove_roles(croupier_role)
+
+        embed = discord.Embed(
+            title="🚫 Annonce de Fermeture",
+            description="**Le Blouson d'TONTON** ferme les portes de son atelier pour le moment.\n\nMerci à tous pour votre présence. Nous reviendrons très bientôt avec de nouvelles pièces ! 🧶🧥\n\nUn peu de repos pour mieux coudre demain. 🛌💤\n\n**Le Blouson d'TONTON.**",
+            color=discord.Color.red()
+        )
+        embed.set_image(url=TONTON_IMAGE)
+        channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
+        if channel:
+            await self.delete_last_royal_announcement(channel)
+            await channel.send(embed=embed)
+
+        await interaction.response.send_message("🚫 Atelier fermé et annonce envoyée.", ephemeral=True)
+
+    @discord.ui.button(label="Pause", style=discord.ButtonStyle.primary, custom_id="casino_pause")
+    async def pause_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        role = interaction.guild.get_role(ROLE_PAUSE_ID)
+        if role:
+            await interaction.guild.me.add_roles(role)
+
+        embed = discord.Embed(
+            title="⏸️ Annonce de Pause",
+            description="**Le Blouson d'TONTON** marque une courte **pause** dans l’atelier.\n\nUn moment pour se recentrer avant de reprendre le fil. ☕️🧷\n\nRestez connectés, nos créations reviennent très bientôt. 🧵⏱️\n\n**Le Blouson d'TONTON.**",
+            color=discord.Color.blurple()
+        )
+        embed.set_image(url=TONTON_IMAGE_URL)
+        channel = interaction.guild.get_channel(ANNONCE_CHANNEL_ID)
+        if channel:
+            await self.delete_last_royal_announcement(channel)
+            await channel.send(embed=embed)
+
+        await interaction.response.send_message("⏸️ Pause activée et annonce envoyée.", ephemeral=True)
+
 
 
 # ==== REWARDS ====
@@ -335,7 +344,50 @@ class VueRoue(discord.ui.View):
             await log_channel.send(f"🎡 {interaction.user.display_name} a tourné la roue et a gagné : **{gain}**")
 
 
+
 # ==== COMMANDES ====
+
+@bot.tree.command(name="upload", description="Préparer un vêtement à imprimer", guild=discord.Object(id=GUILD_ID))
+async def upload(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.manage_messages:
+        await interaction.response.send_message("❌ Tu n’as pas la permission.", ephemeral=True)
+        return
+
+    class UploadModal(ui.Modal, title="📥 Ajouter un vêtement"):
+        lien = ui.TextInput(
+            label="Lien de l'image",
+            style=discord.TextStyle.short,
+            required=True,
+            placeholder="https://exemple.com/image.png"
+        )
+        nom = ui.TextInput(
+            label="Nom du vêtement",
+            style=discord.TextStyle.short,
+            required=True,
+            placeholder="Exemple : T-shirt bleu"
+        )
+        quantite = ui.TextInput(
+            label="Quantité",
+            style=discord.TextStyle.short,
+            required=True,
+            placeholder="Exemple : 10"
+        )
+
+        async def on_submit(self, interaction: discord.Interaction):
+            embed = discord.Embed(title="👕 Vêtement à imprimer", color=discord.Color.green())
+            embed.set_thumbnail(url=self.lien.value)
+            embed.add_field(name="📋 À copier dans le jeu", value="```\n/vetement\n```", inline=False)
+            embed.add_field(name="📎 Lien", value=f"```\n{self.lien.value}\n```", inline=False)
+            embed.add_field(name="🏷️ Nom", value=f"```\n{self.nom.value}\n```", inline=False)
+            embed.add_field(name="🔢 Quantité", value=f"```\n{self.quantite.value}\n```", inline=False)
+            embed.set_footer(text=f"Ajouté par : {interaction.user.display_name}")
+            await interaction.response.send_message(embed=embed)
+
+    await interaction.response.send_modal(UploadModal())
+
+
+
+
 @bot.tree.command(name="annonce", description="Affiche les boutons de gestion du Blouson d'TONTON", guild=discord.Object(id=GUILD_ID))
 async def annonce(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
@@ -357,53 +409,8 @@ async def resetroue(interaction: discord.Interaction):
         await interaction.followup.send("❌ Salon introuvable.", ephemeral=True)
 
 
-@bot.tree.command(name="service", description="Envoyer le bouton de prise de service")
-@app_commands.guilds(discord.Object(id=GUILD_ID))
-async def service(interaction: discord.Interaction):
-    await interaction.response.send_message("Clique sur le bouton pour prendre ton service :", view=PriseDeServiceView())
 
-
-# ==== VIEWS pour prise et fin de service ====
-class FinServiceModal(ui.Modal, title="📋 Rapport de fin de service"):
-    nb_clients = ui.TextInput(label="👥 Nombre de clients", required=True)
-    argent_depart = ui.TextInput(label="💸 Argent au départ", required=True)
-    argent_fin = ui.TextInput(label="💰 Argent à la fin", required=True)
-    temps_service = ui.TextInput(label="⏱️ Temps de service (HH:MM)", required=True)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        log_channel = bot.get_channel(SALON_LOGS_SERVICE_ID)
-        embed = discord.Embed(title="📝 Fin de service", color=discord.Color.green())
-        embed.add_field(name="👤 Nom", value=interaction.user.display_name, inline=False)
-        embed.add_field(name="👥 Nombre de clients", value=self.nb_clients.value, inline=True)
-        embed.add_field(name="💸 Argent départ", value=self.argent_depart.value, inline=True)
-        embed.add_field(name="💰 Argent fin", value=self.argent_fin.value, inline=True)
-        embed.add_field(name="⏱️ Temps de service", value=self.temps_service.value, inline=True)
-        await interaction.response.send_message("✅ Ton rapport a bien été envoyé !", ephemeral=True)
-        await log_channel.send(embed=embed)
-
-class FinDeServiceView(ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @ui.button(label="⛔ Fin de service", style=discord.ButtonStyle.danger, custom_id="fin_service_btn")
-    async def fin_service(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(FinServiceModal())
-
-class PriseDeServiceView(ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @ui.button(label="📢 Prise de service", style=discord.ButtonStyle.success, custom_id="prise_service_btn")
-    async def prise_service(self, interaction: discord.Interaction, button: discord.ui.Button):
-        log_channel = bot.get_channel(SALON_LOGS_SERVICE_ID)
-        nom = interaction.user.display_name
-        await log_channel.send(f"✅ Le joueur **{nom}** a pris son service.")
-        await interaction.response.send_message(
-            "🟢 Tu es maintenant en service.\nQuand tu veux terminer, clique sur le bouton ci-dessous.",
-            view=FinDeServiceView(),
-            ephemeral=True)
-
-
+        
 # ==== Event on_ready ====
 @bot.event
 async def on_ready():
@@ -413,7 +420,6 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Erreur de synchronisation : {e}")
     print(f"🤖 Connecté en tant que {bot.user}")
-
 
 # ==== LANCEMENT FINAL ====
 keep_alive()
