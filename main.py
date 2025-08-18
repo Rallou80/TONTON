@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands, ui
-from discord.ui import View, Button, Select # Import manquant corrigé
+from discord.ui import View, Button, Select
 import random
 import threading
 from flask import Flask
@@ -9,22 +9,18 @@ import os
 
 # ==== CONFIGURATION ====
 TOKEN = os.getenv("DISCORD_TOKEN")
-GUILD_ID = 1399014657209008168  #id du serveur
+GUILD_ID = 1399014657209008168  # id du serveur
 
-ANNONCE_CHANNEL_ID = 1399018858131624027  # embed d'ouverture et fermeture
-SALON_CLIENTS_ID = 1399021433325223946    # /sonnette
-SALON_CROUPIERS_ID = 1399855362655649823  # id du salon des logs sonnette
-ROLE_CROUPIER_ID = 1399857058383138876   #id du rôles à mentionner à la sonnette
-SALON_BOUTON_ID = 1399857428421541970 #id du salon pour le /money (session de casino)
-STAFF_ROLE_ID = 1399016778553753731 #id du rôle à ajouter aux tickets
-CATEGORY_ID = 1399021383262011402 # id de la catégorie où sont créer les tickets
+ANNONCE_CHANNEL_ID = 1399018858131624027
+STAFF_ROLE_ID = 1399016778553753731
+CATEGORY_ID = 1399021383262011402
 
-ROLE_CASINO_ID = 1399858237599256596 #id du rôle ouverture
-ROLE_PAUSE_ID = 1399858167852040294 #id du rôle pause
-SALON_ROUE_ID = 1399859154600071199 #roue (clients)
-SALON_LOGS_ID = 1399859434968322078 #roue (staff)
-SALON_LOGS_gains_ID = 1399859434968322078 #gains-pertes
-SALON_LOGS_SERVICE_ID = 1399859851529556149 #prise de service logs
+ROLE_CASINO_ID = 1399858237599256596
+ROLE_PAUSE_ID = 1399858167852040294
+SALON_ROUE_ID = 1399859154600071199
+SALON_LOGS_ID = 1399859434968322078
+SALON_LOGS_gains_ID = 1399859434968322078
+SALON_LOGS_SERVICE_ID = 1399859851529556149
 
 GIF_URL = "https://raw.githubusercontent.com/Rallou80/TONTON/main/royal.png"
 TONTON_IMAGE_URL = "https://raw.githubusercontent.com/Rallou80/TONTON/main/tontonGOAT.png"
@@ -50,7 +46,8 @@ def keep_alive():
     t = threading.Thread(target=run)
     t.start()
 
-# ==== CLASSE : CasinoControlView (anciennement CasinoView, renommée) ====
+
+# ==== CLASSE : CasinoControlView ====
 class CasinoControlView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -75,13 +72,9 @@ class CasinoControlView(discord.ui.View):
         if role:
             await interaction.guild.me.add_roles(role)
 
-        croupier_role = interaction.guild.get_role(ROLE_CROUPIER_ID)
-        if croupier_role:
-            await interaction.user.add_roles(croupier_role)
-
         embed = discord.Embed(
             title="✅ Annonce d'Ouverture",
-            description="**Le Blouson d'TONTON** est officiellement ouvert !\n\nDécouvrez nos nouvelles créations sur-mesure, des pièces uniques conçues avec passion. 🧵🪡\n\nL’atelier est prêt, il ne manque plus que vous. 👔✨\n\n**Le Blouson d'TONTON.**",
+            description="**Le Blouson d'TONTON** est officiellement ouvert !",
             color=discord.Color.green()
         )
         embed.set_thumbnail(url=TONTON_IMAGE_URL)
@@ -99,13 +92,9 @@ class CasinoControlView(discord.ui.View):
         if role:
             await interaction.guild.me.remove_roles(role)
 
-        croupier_role = interaction.guild.get_role(ROLE_CROUPIER_ID)
-        if croupier_role:
-            await interaction.user.remove_roles(croupier_role)
-
         embed = discord.Embed(
             title="🚫 Annonce de Fermeture",
-            description="**Le Blouson d'TONTON** ferme les portes de son atelier pour le moment.\n\nMerci à tous pour votre présence. Nous reviendrons très bientôt avec de nouvelles pièces ! 🧶🧥\n\nUn peu de repos pour mieux coudre demain. 🛌💤\n\n**Le Blouson d'TONTON.**",
+            description="**Le Blouson d'TONTON** ferme les portes pour le moment.",
             color=discord.Color.red()
         )
         embed.set_image(url=TONTON_IMAGE)
@@ -124,7 +113,7 @@ class CasinoControlView(discord.ui.View):
 
         embed = discord.Embed(
             title="⏸️ Annonce de Pause",
-            description="**Le Blouson d'TONTON** marque une courte **pause** dans l’atelier.\n\nUn moment pour se recentrer avant de reprendre le fil. ☕️🧷\n\nRestez connectés, nos créations reviennent très bientôt. 🧵⏱️\n\n**Le Blouson d'TONTON.**",
+            description="**Le Blouson d'TONTON** marque une courte pause.",
             color=discord.Color.blurple()
         )
         embed.set_image(url=TONTON_IMAGE_URL)
@@ -136,410 +125,171 @@ class CasinoControlView(discord.ui.View):
         await interaction.response.send_message("⏸️ Pause activée et annonce envoyée.", ephemeral=True)
 
 
+# ====== Commande /commande ======
+
+async def get_next_ticket_number(guild: discord.Guild):
+    category = guild.get_channel(CATEGORY_ID)
+    if not category:
+        return 1
+
+    ticket_channels = [ch for ch in category.channels if isinstance(ch, discord.TextChannel) and ch.name.startswith("cmd-")]
+    if not ticket_channels:
+        return 1
+
+    numbers = []
+    for ch in ticket_channels:
+        try:
+            num = int(ch.name.split("-")[1])
+            numbers.append(num)
+        except:
+            pass
+    return max(numbers) + 1 if numbers else 1
 
 
-# =========== Blackjack Game ============
-cards = [str(n) for n in range(2, 11)] + ["J", "Q", "K", "A"]
-class BlackjackView(discord.ui.View):
-    def __init__(self, player, dealer, message, user):
-        super().__init__(timeout=None)
-        self.player = player
-        self.dealer = dealer
-        self.message = message
-        self.user = user
-        self.stopped = False
-
-    def calculate_total(self, hand):
-        total, aces = 0, 0
-        for card in hand:
-            if card in ["J", "Q", "K"]:
-                total += 10
-            elif card == "A":
-                aces += 1
-                total += 11
-            else:
-                total += int(card)
-        while total > 21 and aces:
-            total -= 10
-            aces -= 1
-        return total
-
-    def blackjack_embed(self):
-        return discord.Embed(
-            title="🃏 Partie de Blackjack",
-            description=(
-                f"**Vos cartes :** {' '.join(self.player)}\n"
-                f"**Total :** {self.calculate_total(self.player)}\n\n"
-                f"**Cartes du croupier :** {' '.join(self.dealer[:1])} ❓"
-            ),
-            color=discord.Color.gold()
-        )
-
-    @discord.ui.button(label="🟢 Tirer", style=discord.ButtonStyle.success)
-    async def hit(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user != self.user:
-            return await interaction.response.send_message("Tu ne joues pas cette partie.", ephemeral=True)
-
-        self.player.append(random.choice(cards))
-        total = self.calculate_total(self.player)
-        if total > 21:
-            await interaction.response.edit_message(
-                embed=discord.Embed(
-                    title="💥 Vous avez dépassé 21 !",
-                    description=(
-                        f"**Vos cartes :** {' '.join(self.player)}\nTotal : {total}\n\n"
-                        f"Croupier : {' '.join(self.dealer)} ({self.calculate_total(self.dealer)})\n\n**❌ Vous avez perdu !**"
-                    ),
-                    color=discord.Color.red()
-                ),
-                view=self.replay_view()
-            )
-            self.stopped = True
-            return
-        await interaction.response.edit_message(embed=self.blackjack_embed())
-
-    @discord.ui.button(label="🟡 Rester", style=discord.ButtonStyle.secondary)
-    async def stay(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user != self.user:
-            return await interaction.response.send_message("Tu ne joues pas cette partie.", ephemeral=True)
-
-        while self.calculate_total(self.dealer) < 17:
-            self.dealer.append(random.choice(cards))
-
-        player_total = self.calculate_total(self.player)
-        dealer_total = self.calculate_total(self.dealer)
-
-        if player_total > dealer_total or dealer_total > 21:
-            result = "🏆 **Vous avez gagné !**"
-            color = discord.Color.green()
-        elif player_total < dealer_total:
-            result = "❌ **Vous avez perdu !**"
-            color = discord.Color.red()
-        else:
-            result = "🤝 **Égalité !**"
-            color = discord.Color.blurple()
-
-        embed = discord.Embed(
-            title="🎲 Résultat de la Partie",
-            description=(
-                f"**Vos cartes :** {' '.join(self.player)} ({player_total})\n"
-                f"**Cartes du croupier :** {' '.join(self.dealer)} ({dealer_total})\n\n{result}"
-            ),
-            color=color
-        )
-        await interaction.response.edit_message(embed=embed, view=self.replay_view())
-        self.stopped = True
-
-    def replay_view(self):
-        view = View()
-        view.add_item(Button(label="🔁 Rejouer", style=discord.ButtonStyle.primary, custom_id="replay_blackjack"))
-        return view
-
-class RetryButton(Button):
-    def __init__(self, user):
-        super().__init__(label="🔁 Rejouer", style=discord.ButtonStyle.success)
-        self.user = user
-
-    async def callback(self, interaction: discord.Interaction):
-        if interaction.user != self.user:
-            return await interaction.response.send_message("Ce n’est pas ta partie.", ephemeral=True)
-
-        new_view = RouletteEuropeenneView(self.user)
-        embed = discord.Embed(
-            title="🎡 Nouvelle Partie de Roulette Européenne",
-            description="Choisissez un numéro **ou** une couleur, puis cliquez sur **Lancer la roulette**.",
-            color=discord.Color.blurple()
-        )
-        await interaction.response.edit_message(embed=embed, view=new_view)
-
-
-class RouletteEuropeenneView(discord.ui.View):
-    def __init__(self, user):
-        super().__init__(timeout=None)
-        self.user = user
-        self.bet_number = None
-        self.bet_color = None
-
-        # Sélecteurs plages de numéros
-        options_1_12 = [discord.SelectOption(label=str(n), description=f"Parier sur le numéro {n}") for n in range(1, 13)]
-        options_13_24 = [discord.SelectOption(label=str(n), description=f"Parier sur le numéro {n}") for n in range(13, 25)]
-        options_25_36 = [discord.SelectOption(label=str(n), description=f"Parier sur le numéro {n}") for n in range(25, 37)]
-
-        self.select_number_1 = Select(
-            placeholder="1-12",
-            options=options_1_12,
-            max_values=1,
-            custom_id="roulette_num_1"
-        )
-        self.select_number_2 = Select(
-            placeholder="13-24",
-            options=options_13_24,
-            max_values=1,
-            custom_id="roulette_num_2"
-        )
-        self.select_number_3 = Select(
-            placeholder="25-36",
-            options=options_25_36,
-            max_values=1,
-            custom_id="roulette_num_3"
-        )
-        # Select couleur
-        color_options = [
-            discord.SelectOption(label="Rouge", description="Parier sur la couleur Rouge", emoji="🔴"),
-            discord.SelectOption(label="Noir", description="Parier sur la couleur Noir", emoji="⚫")
-        ]
-        self.select_color = Select(
-            placeholder="Choisissez une couleur",
-            options=color_options,
-            max_values=1,
-            custom_id="roulette_color"
-        )
-
-        # Ajouter les sélecteurs
-        self.add_item(self.select_number_1)
-        self.add_item(self.select_number_2)
-        self.add_item(self.select_number_3)
-        self.add_item(self.select_color)
-
-        # Bouton Lancer roulette
-        self.spin_button = Button(label="🎡 Lancer la roulette", style=discord.ButtonStyle.primary, disabled=True)
-        self.add_item(self.spin_button)
-
-        # Assign callbacks
-        self.select_number_1.callback = self.number_select_callback
-        self.select_number_2.callback = self.number_select_callback
-        self.select_number_3.callback = self.number_select_callback
-        self.select_color.callback = self.color_select_callback
-        self.spin_button.callback = self.spin_callback
-
-    async def number_select_callback(self, interaction: discord.Interaction):
-        if interaction.user != self.user:
-            return await interaction.response.send_message("Ce n’est pas ta partie.", ephemeral=True)
-
-        # Récupérer le numéro choisi
-        selected_value = None
-        for select in [self.select_number_1, self.select_number_2, self.select_number_3]:
-            if interaction.data["custom_id"] == select.custom_id:
-                selected_value = int(select.values[0])
-                break
-
-        if selected_value is None:
-            return await interaction.response.send_message("Erreur de sélection.", ephemeral=True)
-
-        # Désactiver les autres sélects et la couleur
-        self.bet_number = selected_value
-        self.bet_color = None
-
-        # Clear toutes les sélections sauf celle qui vient d'être choisie
-        for select in [self.select_number_1, self.select_number_2, self.select_number_3, self.select_color]:
-            if select.custom_id != interaction.data["custom_id"]:
-                select.disabled = True
-            else:
-                # Fixe la sélection actuelle pour garder le visuel
-                select.disabled = False
-                select.options = [
-                    discord.SelectOption(label=opt.label, value=opt.value, default=(int(opt.value) == selected_value if opt.value.isdigit() else False))
-                    for opt in select.options
-                ]
-
-        self.spin_button.disabled = False
-
-        await interaction.response.edit_message(content=f"Tu as parié sur le numéro {self.bet_number}. Lance la roulette !", view=self)
-
-    async def color_select_callback(self, interaction: discord.Interaction):
-        if interaction.user != self.user:
-            return await interaction.response.send_message("Ce n’est pas ta partie.", ephemeral=True)
-
-        chosen_color = self.select_color.values[0]
-        self.bet_color = chosen_color.lower()
-        self.bet_number = None
-
-        # Désactiver tous les selects de numéro
-        for select in [self.select_number_1, self.select_number_2, self.select_number_3]:
-            select.disabled = True
-            # Reset leurs options par défaut
-            select.options = [discord.SelectOption(label=opt.label, value=opt.value, default=False) for opt in select.options]
-
-        # Fixer la sélection couleur (pour garder le visuel)
-        self.select_color.options = [
-            discord.SelectOption(label=opt.label, value=opt.value, default=(opt.label.lower() == self.bet_color))
-            for opt in self.select_color.options
-        ]
-
-        self.spin_button.disabled = False
-
-        await interaction.response.edit_message(content=f"Tu as parié sur la couleur {self.bet_color.capitalize()}. Lance la roulette !", view=self)
-
-    def get_color(self, number):
-        # 0 est vert, pas rouge ni noir
-        if number == 0:
-            return "vert"
-        # Rouge (nombres rouges sur roulette européenne)
-        rouges = {1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36}
-        return "rouge" if number in rouges else "noir"
-
-    async def spin_callback(self, interaction: discord.Interaction):
-        if interaction.user != self.user:
-            return await interaction.response.send_message("Ce n’est pas ta partie.", ephemeral=True)
-
-        result = random.randint(0, 36)
-        result_color = self.get_color(result)
-
-        if self.bet_number is not None:
-            win = (result == self.bet_number)
-        elif self.bet_color is not None:
-            win = (result_color == self.bet_color)
-        else:
-            win = False
-
-        description = f"🎰 La bille est tombée sur **{result} ({result_color.upper()})**.\n"
-        if win:
-            description += "🏆 Félicitations, tu as **gagné** ton pari !"
-            color = discord.Color.green()
-        else:
-            if self.bet_number is not None:
-                lost = f"ton numéro **{self.bet_number}**"
-            else:
-                lost = f"la couleur **{self.bet_color.capitalize()}**"
-            description += f"❌ Dommage, tu as perdu {lost}."
-            color = discord.Color.red()
-
-        embed = discord.Embed(
-            title="🎡 Résultat de la Roulette",
-            description=description,
-            color=color
-        )
-
-        # Désactiver tout
-        for item in self.children:
-            item.disabled = True
-
-        # On enlève tout et on ajoute juste le bouton rejouer
-        self.clear_items()
-        self.add_item(RetryButton(self.user))
-
-        await interaction.response.edit_message(embed=embed, view=self)
-
-# ============ Vue de lancement de jeu ============
-
-class StartGameView(discord.ui.View):
-    @discord.ui.button(label="🎰 Blackjack", style=discord.ButtonStyle.success, custom_id="start_blackjack")
-    async def start_blackjack(self, interaction: discord.Interaction, button: discord.ui.Button):
-        player = [random.choice(cards), random.choice(cards)]
-        dealer = [random.choice(cards), random.choice(cards)]
-        embed = discord.Embed(
-            title="🃏 Partie de Blackjack",
-            description=(
-                f"**Vos cartes :** {' '.join(player)}\n"
-                f"**Total :** {BlackjackView(player, dealer, None, interaction.user).calculate_total(player)}\n\n"
-                f"**Cartes du croupier :** {' '.join(dealer[:1])} ❓"
-            ),
-            color=discord.Color.gold()
-        )
-        await interaction.response.send_message(embed=embed, view=BlackjackView(player, dealer, None, interaction.user))
-
-    @discord.ui.button(label="🎡 Roulette Européenne", style=discord.ButtonStyle.primary, custom_id="start_roulette")
-    async def start_roulette(self, interaction: discord.Interaction, button: discord.ui.Button):
-        embed = discord.Embed(
-            title="🎡 Roulette Européenne",
-            description="Choisissez un numéro (1-36) **ou** une couleur, puis cliquez sur **Lancer la roulette**.",
-            color=discord.Color.blurple()
-        )
-        await interaction.response.send_message(embed=embed, view=RouletteEuropeenneView(interaction.user))
-
-# ============ Vue après /sonnette ============
-class CasinoView(discord.ui.View):
+class ChoixCommandeView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    async def create_private_game_channel(self, interaction: discord.Interaction, game_name: str):
+        self.add_item(discord.ui.Select(
+            placeholder="Choisissez le type de commande",
+            custom_id="commande_type",
+            options=[
+                discord.SelectOption(label="Vêtement", value="vetement"),
+                discord.SelectOption(label="Voiture (UV Nova Life)", value="voiture")
+            ]
+        ))
+
+    @discord.ui.select(custom_id="commande_type")
+    async def select_type(self, interaction: discord.Interaction, select: discord.ui.Select):
+        if select.values[0] == "vetement":
+            options = [
+                discord.SelectOption(label="Costard", value="costard"),
+                discord.SelectOption(label="T-shirt", value="tshirt"),
+                discord.SelectOption(label="Entreprise", value="entreprise"),
+                discord.SelectOption(label="Tatouage", value="tatouage"),
+                discord.SelectOption(label="Autre", value="autre")
+            ]
+        else:
+            options = [
+                discord.SelectOption(label="Premier", value="premier"),
+                discord.SelectOption(label="Master", value="master"),
+                discord.SelectOption(label="Berlingo Civil", value="berlingo_civil"),
+                discord.SelectOption(label="206", value="206"),
+                discord.SelectOption(label="Range Rover", value="range_rover"),
+                discord.SelectOption(label="C4 Grand Picasso", value="c4_grand_picasso"),
+                discord.SelectOption(label="5008 Civil", value="5008_civil"),
+                discord.SelectOption(label="Mégane IV Civil", value="megane_iv_civil"),
+                discord.SelectOption(label="Dodge Charger 1970", value="dodge_charger_1970"),
+                discord.SelectOption(label="Olympia A7", value="olympia_a7"),
+                discord.SelectOption(label="RX7", value="rx7"),
+                discord.SelectOption(label="V Model S", value="v_model_s"),
+                discord.SelectOption(label="Stellar Coupé", value="stellar_coupe"),
+                discord.SelectOption(label="Premier Limo", value="premier_limo"),
+                discord.SelectOption(label="911", value="911"),
+                discord.SelectOption(label="KAT", value="kat"),
+                discord.SelectOption(label="Dépanneuse", value="depanneuse"),
+                discord.SelectOption(label="FTR", value="ftr")
+            ]
+
+        view = SousTypeCommandeView(options, select.values[0])
+        await interaction.response.edit_message(content="📑 Sélectionnez le modèle :", view=view)
+
+
+class SousTypeCommandeView(discord.ui.View):
+    def __init__(self, options, type_commande):
+        super().__init__(timeout=None)
+        self.type_commande = type_commande
+        self.add_item(discord.ui.Select(
+            placeholder="Choisissez le modèle",
+            options=options,
+            custom_id="commande_sous_type"
+        ))
+
+    @discord.ui.select(custom_id="commande_sous_type")
+    async def select_modele(self, interaction: discord.Interaction, select: discord.ui.Select):
         guild = interaction.guild
-        member = interaction.user
-        croupier_channel = guild.get_channel(SALON_CROUPIERS_ID)
-        croupier_role = guild.get_role(ROLE_CROUPIER_ID)
+        number = await get_next_ticket_number(guild)
+        ticket_name = f"cmd-{number}"
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            member: discord.PermissionOverwrite(view_channel=True, send_messages=True),
-            guild.get_role(STAFF_ROLE_ID): discord.PermissionOverwrite(view_channel=True, send_messages=True)
+            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True),
+            guild.get_role(STAFF_ROLE_ID): discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
         }
 
-        private_channel = await guild.create_text_channel(
-            name=f"📜・{member.display_name}".lower().replace(" ", "-"),
+        channel = await guild.create_text_channel(
+            name=ticket_name,
+            category=guild.get_channel(CATEGORY_ID),
             overwrites=overwrites,
-            category=guild.get_channel(CATEGORY_ID)
-        )
-
-        await croupier_channel.send(
-            f"{croupier_role.mention} 🎰 Le joueur **{member.display_name}** souhaite un **{game_name}** !"
+            topic=str(interaction.user.id)  # stock ID client
         )
 
         embed = discord.Embed(
-            title=f"🧵🪡 Le Blouson d'TONTON · {game_name}",
-            description="Un employé va arriver sous peu.\nTu peux commencer une partie pendant que tu attends.",
-            color=discord.Color.gold()
+            title=f"Commande {ticket_name}",
+            description=(
+                f"**Client :** {interaction.user.mention}\n"
+                f"**Type :** {select.values[0]}\n\n"
+                "Veuillez détailler votre demande, ajouter un lien si vous en avez, et envoyer vos images ci-dessous."
+            ),
+            color=discord.Color.blue()
         )
+        embed.set_footer(text="Acceptez-vous le règlement de la boutique ?")
 
-        await private_channel.send(content=member.mention, embed=embed, view=StartGameView())
-        await interaction.response.send_message(f"✅ Un salon privé a été créé ici : {private_channel.mention}", ephemeral=True)
+        msg = await channel.send(embed=embed)
+        await msg.add_reaction("✅")
+        await msg.add_reaction("❌")
 
-    @discord.ui.button(label="T-shirt", emoji="👕", style=discord.ButtonStyle.primary)
-    async def blackjack(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.create_private_game_channel(interaction, "T-shirt")
+        await interaction.response.edit_message(content=f"🎟️ Ticket créé : {channel.mention}", view=None)
 
-    @discord.ui.button(label="Costard", emoji="👔", style=discord.ButtonStyle.success)
-    async def roulette(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.create_private_game_channel(interaction, "Costard")
 
-    @discord.ui.button(label="Voiture", emoji="🚗", style=discord.ButtonStyle.secondary)
-    async def roue(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.create_private_game_channel(interaction, "Voiture")
+@bot.tree.command(name="commande", description="Ouvrir un ticket de commande", guild=discord.Object(id=GUILD_ID))
+async def commande(interaction: discord.Interaction):
+    view = ChoixCommandeView()
+    await interaction.response.send_message("📦 Choisissez le type de votre commande :", view=view, ephemeral=True)
 
-    @discord.ui.button(label="Autre demande", emoji="💬", style=discord.ButtonStyle.danger)
-    async def autre(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.create_private_game_channel(interaction, "Autre demande")
 
-# ========== Commande /sonnette ==========
-@bot.tree.command(name="sonnette", description="Crée l'embed client pour les tickets", guild=discord.Object(id=GUILD_ID))
-async def sonnette(interaction: discord.Interaction):
-    if interaction.channel.id != SALON_CLIENTS_ID:
-        return await interaction.response.send_message("❌ Cette commande ne peut être utilisée que dans le salon clients.", ephemeral=True)
+# ===== Commandes staff =====
+@bot.tree.command(name="2", description="Marquer une commande en cours", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(numero="Numéro de la commande")
+async def commande_en_cours(interaction: discord.Interaction, numero: int):
+    channel = discord.utils.get(interaction.guild.channels, name=f"cmd-{numero}")
+    if not channel:
+        return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
     embed = discord.Embed(
-        title="🧵 Le Blouson d'TONTON – Besoin d’un tailleur ?",
-        description=(
-            "Envie d’un costard, d’un vêtement unique, mais personne à l’atelier ?\n"
-            "**Clique sur une demande** et **patiente un instant**, un tailleur arrive pour vous conseiller ! 👔✂️\n"
-            "_Tu peux aussi formuler une autre demande si besoin._"
-        ),
-        color=discord.Color.gold()
+        title=f"Commande CMD-{numero}",
+        description=f"Statut : 🟡 En cours\nClient ping: <@{channel.topic}>",
+        color=discord.Color.yellow()
     )
+    await channel.send(content=f"<@&{STAFF_ROLE_ID}> <@{channel.topic}>", embed=embed)
+    await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué en cours.", ephemeral=True)
 
 
-    await interaction.response.send_message(embed=embed, view=CasinoView())
+@bot.tree.command(name="3", description="Marquer une commande terminée", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(numero="Numéro de la commande")
+async def commande_terminee(interaction: discord.Interaction, numero: int):
+    channel = discord.utils.get(interaction.guild.channels, name=f"cmd-{numero}")
+    if not channel:
+        return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
-# ========== Gère les replays ==========
-@bot.event
-async def on_interaction(interaction: discord.Interaction):
-    if interaction.type == discord.InteractionType.component and interaction.data.get("custom_id") == "replay_blackjack":
-        player = [random.choice(cards), random.choice(cards)]
-        dealer = [random.choice(cards), random.choice(cards)]
+    embed = discord.Embed(
+        title=f"Commande CMD-{numero}",
+        description="Statut : 🟢 Terminée\nMerci pour votre confiance !",
+        color=discord.Color.green()
+    )
+    await channel.send(content=f"<@{channel.topic}> ✅ Votre commande est prête !", embed=embed)
+    await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué terminé.", ephemeral=True)
 
-        embed = discord.Embed(
-            title="🃏 Partie de Blackjack",
-            description=(
-                f"**Vos cartes :** {' '.join(player)}\n"
-                f"**Total :** {BlackjackView(player, dealer, None, interaction.user).calculate_total(player)}\n\n"
-                f"**Cartes du croupier :** {' '.join(dealer[:1])} ❓"
-            ),
-            color=discord.Color.gold()
-        )
 
-        await interaction.message.channel.send(
-            embed=embed,
-            view=BlackjackView(player, dealer, interaction.message, interaction.user)
-        )
-        await interaction.response.defer()
+@bot.tree.command(name="del", description="Supprimer un ticket", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(numero="Numéro de la commande")
+async def commande_supprimer(interaction: discord.Interaction, numero: int):
+    channel = discord.utils.get(interaction.guild.channels, name=f"cmd-{numero}")
+    if not channel:
+        return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
+
+    await channel.delete()
+    await interaction.response.send_message(f"🗑️ Ticket CMD-{numero} supprimé.", ephemeral=True)
 
 
 # ==== REWARDS ====
@@ -585,45 +335,7 @@ class VueRoue(discord.ui.View):
             await log_channel.send(f"🎡 {interaction.user.display_name} a tourné la roue et a gagné : **{gain}**")
 
 
-
 # ==== COMMANDES ====
-
-@bot.tree.command(name="upload", description="Préparer un vêtement à imprimer", guild=discord.Object(id=GUILD_ID))
-async def upload(interaction: discord.Interaction):
-    class UploadModal(ui.Modal, title="📥 Ajouter un vêtement"):
-        lien = ui.TextInput(
-            label="Lien de l'image",
-            style=discord.TextStyle.short,
-            required=True,
-            placeholder="https://exemple.com/image.png"
-        )
-        nom = ui.TextInput(
-            label="Nom du vêtement",
-            style=discord.TextStyle.short,
-            required=True,
-            placeholder="Exemple : T-shirt bleu"
-        )
-        quantite = ui.TextInput(
-            label="Quantité",
-            style=discord.TextStyle.short,
-            required=True,
-            placeholder="Exemple : 10"
-        )
-
-        async def on_submit(self, interaction: discord.Interaction):
-            embed = discord.Embed(title="👕 Vêtement à imprimer", color=discord.Color.green())
-            embed.set_thumbnail(url=self.lien.value)
-            embed.add_field(name="📋 À copier dans le jeu", value="```\n/vetement\n```", inline=False)
-            embed.add_field(name="📎 Lien", value=f"```\n{self.lien.value}\n```", inline=False)
-            embed.add_field(name="🏷️ Nom", value=f"```\n{self.nom.value}\n```", inline=False)
-            embed.add_field(name="🔢 Quantité", value=f"```\n{self.quantite.value}\n```", inline=False)
-            embed.set_footer(text=f"Ajouté par : {interaction.user.display_name}")
-            await interaction.response.send_message(embed=embed)
-
-    await interaction.response.send_modal(UploadModal())
-
-
-
 @bot.tree.command(name="annonce", description="Affiche les boutons de gestion du Blouson d'TONTON", guild=discord.Object(id=GUILD_ID))
 async def annonce(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
@@ -648,11 +360,10 @@ async def resetroue(interaction: discord.Interaction):
 @bot.tree.command(name="service", description="Envoyer le bouton de prise de service")
 @app_commands.guilds(discord.Object(id=GUILD_ID))
 async def service(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        "Clique sur le bouton pour prendre ton service :", view=PriseDeServiceView())
+    await interaction.response.send_message("Clique sur le bouton pour prendre ton service :", view=PriseDeServiceView())
+
 
 # ==== VIEWS pour prise et fin de service ====
-
 class FinServiceModal(ui.Modal, title="📋 Rapport de fin de service"):
     nb_clients = ui.TextInput(label="👥 Nombre de clients", required=True)
     argent_depart = ui.TextInput(label="💸 Argent au départ", required=True)
@@ -691,7 +402,8 @@ class PriseDeServiceView(ui.View):
             "🟢 Tu es maintenant en service.\nQuand tu veux terminer, clique sur le bouton ci-dessous.",
             view=FinDeServiceView(),
             ephemeral=True)
-        
+
+
 # ==== Event on_ready ====
 @bot.event
 async def on_ready():
@@ -701,6 +413,7 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Erreur de synchronisation : {e}")
     print(f"🤖 Connecté en tant que {bot.user}")
+
 
 # ==== LANCEMENT FINAL ====
 keep_alive()
