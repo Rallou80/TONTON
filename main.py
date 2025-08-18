@@ -46,10 +46,7 @@ def keep_alive():
     t = threading.Thread(target=run)
     t.start()
 
-# ==== Suivie des Tickets ====
-# ====== Commande /commande  ======
-
-# Fonction utilitaire : trouver prochain numéro de ticket
+# ==== Tickets : utilitaires ====
 async def get_next_ticket_number(guild: discord.Guild):
     category = guild.get_channel(CATEGORY_ID)
     if not category:
@@ -67,22 +64,21 @@ async def get_next_ticket_number(guild: discord.Guild):
         except:
             pass
     return max(numbers) + 1 if numbers else 1
-    
 
+
+# ==== VUES ====
 class ChoixCommandeView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-        self.add_item(discord.ui.Select(
-            placeholder="Choisissez le type de commande",
-            custom_id="commande_type",
-            options=[
-                discord.SelectOption(label="Vêtement", value="vetement"),
-                discord.SelectOption(label="Voiture (UV Nova Life)", value="voiture")
-            ]
-        ))
-
-    @discord.ui.select(custom_id="commande_type")
+    @discord.ui.select(
+        placeholder="Choisissez le type de commande",
+        custom_id="commande_type",
+        options=[
+            discord.SelectOption(label="Vêtement", value="vetement"),
+            discord.SelectOption(label="Voiture (UV Nova Life)", value="voiture"),
+        ]
+    )
     async def select_type(self, interaction: discord.Interaction, select: discord.ui.Select):
         if select.values[0] == "vetement":
             options = [
@@ -90,7 +86,7 @@ class ChoixCommandeView(discord.ui.View):
                 discord.SelectOption(label="T-shirt", value="tshirt"),
                 discord.SelectOption(label="Entreprise", value="entreprise"),
                 discord.SelectOption(label="Tatouage", value="tatouage"),
-                discord.SelectOption(label="Autre", value="autre")
+                discord.SelectOption(label="Autre", value="autre"),
             ]
         else:
             options = [
@@ -111,7 +107,7 @@ class ChoixCommandeView(discord.ui.View):
                 discord.SelectOption(label="911", value="911"),
                 discord.SelectOption(label="KAT", value="kat"),
                 discord.SelectOption(label="Dépanneuse", value="depanneuse"),
-                discord.SelectOption(label="FTR", value="ftr")
+                discord.SelectOption(label="FTR", value="ftr"),
             ]
 
         view = SousTypeCommandeView(options, select.values[0])
@@ -164,14 +160,13 @@ class SousTypeCommandeView(discord.ui.View):
         await interaction.response.edit_message(content=f"🎟️ Ticket créé : {channel.mention}", view=None)
 
 
-# ===== Commande /commande =====
+# ==== Commande /commande ====
 @bot.tree.command(name="commande", description="Ouvrir un ticket de commande", guild=discord.Object(id=GUILD_ID))
 async def commande(interaction: discord.Interaction):
-    view = ChoixCommandeView()
-    await interaction.response.send_message("📦 Choisissez le type de votre commande :", view=view, ephemeral=True)
+    await interaction.response.send_message("📦 Choisissez le type de votre commande :", view=ChoixCommandeView(), ephemeral=True)
 
 
-# ===== Commandes staff =====
+# ==== Commandes staff pour suivi des tickets ====
 @bot.tree.command(name="2", description="Marquer une commande en cours", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
 async def commande_en_cours(interaction: discord.Interaction, numero: int):
