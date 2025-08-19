@@ -256,7 +256,7 @@ async def commande_en_cours(interaction: discord.Interaction, numero: int):
      # Création de l'embed
     embed = discord.Embed(
         title=f"Commande CMD-{numero}",
-        description=f"Statut : 🟡 En cours\n{client_mention}, votre demande est en cours de traitement !\nLe créateur {interaction.user.mention} s'occupe au plus vite de votre demande",
+        description=f"Statut : 🟡 En cours\n{interaction.user.mention} prend en charge votre demande.",
         color=discord.Color.yellow()
     )
     embed.set_footer(text=f"L'équipe Du Blouson D'Tonton")
@@ -264,8 +264,6 @@ async def commande_en_cours(interaction: discord.Interaction, numero: int):
     # Envoi de l'embed dans le channel
     await channel.send(embed=embed)
     
-    # Réponse éphémère à l'utilisateur
-    await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué en cours.", ephemeral=True)
 
 @bot.tree.command(name="3", description="Marquer une commande terminée", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
@@ -280,9 +278,8 @@ async def commande_terminee(interaction: discord.Interaction, numero: int):
         color=discord.Color.green()
     )
     embed.set_footer(text=f"L'équipe Du Blouson D'Tonton")
-    
+
     await channel.send(embed=embed)
-    await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué terminé.", ephemeral=True)
 
 @bot.tree.command(name="del", description="Supprimer un ticket", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
