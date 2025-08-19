@@ -278,7 +278,7 @@ async def commande_terminee(interaction: discord.Interaction, numero: int):
     
     embed = discord.Embed(
         title=f"Commande CMD-{numero}",
-        description="Statut : 🟢 Terminée !\nQuand êtes-vous disponible pour que nous procédions à la vente?\n{client_mention}",
+        description=f"Statut : 🟢 Terminée !\nQuand êtes-vous disponible pour que nous procédions à la vente?\n{client_mention}",
         color=discord.Color.green()
     )
     embed.set_footer(text=f"L'équipe Du Blouson D'Tonton")
@@ -506,3 +506,4 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
