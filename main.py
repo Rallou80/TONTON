@@ -63,14 +63,13 @@ async def get_next_ticket_number(guild: discord.Guild):
             pass
     return max(numbers) + 1 if numbers else 1
 
-# ==== FORMULAIRE ====
-class CommandeModal(ui.Modal, title="📦 Nouvelle commande"):
-    def __init__(self, type_commande: str):
+# ==== FORMULAIRES ====
+class VetementModal(ui.Modal, title="👕 Commande Vêtement"):
+    def __init__(self):
         super().__init__(timeout=None)
-        self.type_commande = type_commande
 
         self.desc = ui.TextInput(
-            label="Description de la commande",
+            label="Description",
             style=discord.TextStyle.paragraph,
             required=True,
             placeholder="Exemple : T-shirt bleu avec logo à gauche..."
@@ -78,10 +77,85 @@ class CommandeModal(ui.Modal, title="📦 Nouvelle commande"):
         self.add_item(self.desc)
 
         self.liens = ui.TextInput(
-            label="Liens (images, sites...)",
+            label="Liens (Tu enverras les images dans le ticket)",
             style=discord.TextStyle.paragraph,
             required=False,
-            placeholder="Exemple : https://exemple.com/mon-modele"
+            placeholder="Exemple : https://exemple.com/modele"
+        )
+        self.add_item(self.liens)
+
+        self.impressions = ui.TextInput(
+            label="Nombre d'impressions",
+            style=discord.TextStyle.short,
+            required=True,
+            placeholder="Exemple : 50"
+        )
+        self.add_item(self.impressions)
+
+        self.bas = ui.TextInput(
+            label="Faut-il aussi créer le bas ?",
+            style=discord.TextStyle.short,
+            required=True,
+            placeholder="Oui / Non"
+        )
+        self.add_item(self.bas)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        number = await get_next_ticket_number(guild)
+        ticket_name = f"cmd-{number}"
+
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True),
+            guild.get_role(STAFF_ROLE_ID): discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True),
+        }
+
+        channel = await guild.create_text_channel(
+            name=ticket_name,
+            category=guild.get_channel(CATEGORY_ID),
+            overwrites=overwrites,
+            topic=str(interaction.user.id)  # Stocke l'ID du client
+        )
+
+        embed = discord.Embed(
+            title=f"Commande {ticket_name} - Vêtement",
+            description=(
+                f"**Client :** {interaction.user.mention}\n"
+                f"**Description :** {self.desc.value}\n"
+                f"**Liens :** {self.liens.value or 'Aucun'}\n"
+                f"**Nombre d'impressions :** {self.impressions.value}\n"
+                f"**Bas inclus :** {self.bas.value}"
+            ),
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Acceptez-vous le règlement de la boutique ?")
+
+        msg = await channel.send(embed=embed)
+        await msg.add_reaction("✅")
+        await msg.add_reaction("❌")
+
+        await interaction.response.send_message(f"🎟️ Ton ticket a été créé : {channel.mention}", ephemeral=True)
+
+# ==== FORMULAIRE VOITURE ====
+class VoitureModal(ui.Modal, title="🚗 Commande Voiture"):
+    def __init__(self, modele: str):
+        super().__init__(timeout=None)
+        self.modele = modele
+
+        self.desc = ui.TextInput(
+            label="Description",
+            style=discord.TextStyle.paragraph,
+            required=True,
+            placeholder="Exemple : Voiture rouge avec bandes blanches..."
+        )
+        self.add_item(self.desc)
+
+        self.liens = ui.TextInput(
+            label="Liens (Tu enverras les images dans le ticket)",
+            style=discord.TextStyle.paragraph,
+            required=False,
+            placeholder="Exemple : https://exemple.com/modele"
         )
         self.add_item(self.liens)
 
@@ -99,18 +173,19 @@ class CommandeModal(ui.Modal, title="📦 Nouvelle commande"):
         channel = await guild.create_text_channel(
             name=ticket_name,
             category=guild.get_channel(CATEGORY_ID),
-            overwrites=overwrites
+            overwrites=overwrites,
+            topic=str(interaction.user.id)  # Stocke l'ID du client
         )
 
         embed = discord.Embed(
-            title=f"Commande {ticket_name}",
+            title=f"Commande {ticket_name} - Voiture",
             description=(
                 f"**Client :** {interaction.user.mention}\n"
-                f"**Type :** {self.type_commande}\n"
-                f"**Description :**\n{self.desc.value}\n\n"
-                f"**Liens :**\n{self.liens.value or 'Aucun'}"
+                f"**Modèle choisi :** {self.modele}\n"
+                f"**Description :** {self.desc.value}\n"
+                f"**Liens :** {self.liens.value or 'Aucun'}"
             ),
-            color=discord.Color.blue()
+            color=discord.Color.green()
         )
         embed.set_footer(text="Acceptez-vous le règlement de la boutique ?")
 
@@ -120,18 +195,46 @@ class CommandeModal(ui.Modal, title="📦 Nouvelle commande"):
 
         await interaction.response.send_message(f"🎟️ Ton ticket a été créé : {channel.mention}", ephemeral=True)
 
+# ==== SELECT POUR LES VOITURES ====
+class ModeleVoitureSelect(ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Premier", value="Premier"),
+            discord.SelectOption(label="Master", value="Master"),
+            discord.SelectOption(label="Berlingo Civil", value="Berlingo Civil"),
+            discord.SelectOption(label="206", value="206"),
+            discord.SelectOption(label="Range Rover", value="Range Rover"),
+            discord.SelectOption(label="C4 Grand Picasso", value="C4 Grand Picasso"),
+            discord.SelectOption(label="5008 Civil", value="5008 Civil"),
+            discord.SelectOption(label="Mégane IV Civil", value="Mégane IV Civil"),
+            discord.SelectOption(label="Dodge Charger 1970", value="Dodge Charger 1970"),
+            discord.SelectOption(label="Olympia A7", value="Olympia A7"),
+            discord.SelectOption(label="RX7", value="RX7"),
+            discord.SelectOption(label="V Model S", value="V Model S"),
+            discord.SelectOption(label="Stellar Coupé", value="Stellar Coupé"),
+            discord.SelectOption(label="Premier Limo", value="Premier Limo"),
+            discord.SelectOption(label="911", value="911"),
+            discord.SelectOption(label="KAT", value="KAT"),
+            discord.SelectOption(label="Dépanneuse", value="Dépanneuse"),
+            discord.SelectOption(label="FTR", value="FTR"),
+        ]
+        super().__init__(placeholder="Choisissez un modèle de voiture", options=options, min_values=1, max_values=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(VoitureModal(self.values[0]))
+
 # ==== BOUTONS ====
 class ChoixCommandeView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="👕 Commande Vêtement", style=discord.ButtonStyle.blurple, custom_id="commande_vetement")
+    @discord.ui.button(label="👕 Commande Vêtement", style=discord.ButtonStyle.blurple)
     async def vetement(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(CommandeModal("Vêtement"))
+        await interaction.response.send_modal(VetementModal())
 
-    @discord.ui.button(label="🚗 Commande Voiture", style=discord.ButtonStyle.green, custom_id="commande_voiture")
+    @discord.ui.button(label="🚗 Commande Voiture", style=discord.ButtonStyle.green)
     async def voiture(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(CommandeModal("Voiture"))
+        await interaction.response.send_message("Choisissez le modèle :", view=discord.ui.View().add_item(ModeleVoitureSelect()), ephemeral=True)
 
 # ==== COMMANDE POUR AFFICHER LES BOUTONS ====
 @bot.tree.command(name="commande", description="Afficher le panneau de commandes", guild=discord.Object(id=GUILD_ID))
@@ -148,9 +251,11 @@ async def commande_en_cours(interaction: discord.Interaction, numero: int):
     if not channel:
         return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
+    client_mention = f"<@{channel.topic}>" if channel.topic else "inconnu"
+
     embed = discord.Embed(
         title=f"Commande CMD-{numero}",
-        description=f"Statut : 🟡 En cours\nClient ping: {channel.topic or 'inconnu'}",
+        description=f"Statut : 🟡 En cours\nClient ping: {client_mention}",
         color=discord.Color.yellow()
     )
     await channel.send(content=f"<@&{STAFF_ROLE_ID}>", embed=embed)
