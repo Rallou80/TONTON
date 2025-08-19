@@ -253,12 +253,18 @@ async def commande_en_cours(interaction: discord.Interaction, numero: int):
 
     client_mention = f"<@{channel.topic}>" if channel.topic else "inconnu"
 
+     # Création de l'embed
     embed = discord.Embed(
         title=f"Commande CMD-{numero}",
-        description=f"Statut : 🟡 En cours\nClient ping: {client_mention}",
+        description=f"Statut : 🟡 En cours\n{client_mention}, votre demande est en cours de traitement !",
         color=discord.Color.yellow()
     )
-    await channel.send(content=f"<@&{STAFF_ROLE_ID}>", embed=embed)
+    embed.set_footer(text=f"{interaction.user.mention}")
+
+    # Envoi de l'embed dans le channel
+    await channel.send(embed=embed)
+    
+    # Réponse éphémère à l'utilisateur
     await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué en cours.", ephemeral=True)
 
 @bot.tree.command(name="3", description="Marquer une commande terminée", guild=discord.Object(id=GUILD_ID))
@@ -270,7 +276,7 @@ async def commande_terminee(interaction: discord.Interaction, numero: int):
 
     embed = discord.Embed(
         title=f"Commande CMD-{numero}",
-        description="Statut : 🟢 Terminée\nMerci pour votre confiance !",
+        description="Statut : 🟢 Terminée !\nQuand êtes-vous disponible pour que nous procédions à la vente?",
         color=discord.Color.green()
     )
     await channel.send(embed=embed)
