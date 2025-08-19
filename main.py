@@ -256,10 +256,10 @@ async def commande_en_cours(interaction: discord.Interaction, numero: int):
      # Création de l'embed
     embed = discord.Embed(
         title=f"Commande CMD-{numero}",
-        description=f"Statut : 🟡 En cours\n{client_mention}, votre demande est en cours de traitement !",
+        description=f"Statut : 🟡 En cours\n{client_mention}, votre demande est en cours de traitement !\nLe créateur {interaction.user.mention} s'occupe au plus vite de votre demande",
         color=discord.Color.yellow()
     )
-    embed.set_footer(text=f"{interaction.user.mention}")
+    embed.set_footer(text=f"L'équipe Du Blouson D'Tonton")
 
     # Envoi de l'embed dans le channel
     await channel.send(embed=embed)
@@ -279,6 +279,8 @@ async def commande_terminee(interaction: discord.Interaction, numero: int):
         description="Statut : 🟢 Terminée !\nQuand êtes-vous disponible pour que nous procédions à la vente?",
         color=discord.Color.green()
     )
+    embed.set_footer(text=f"L'équipe Du Blouson D'Tonton")
+    
     await channel.send(embed=embed)
     await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué terminé.", ephemeral=True)
 
