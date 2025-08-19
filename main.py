@@ -45,6 +45,10 @@ def run():
 def keep_alive():
     t = threading.Thread(target=run)
     t.start()
+# ==== Hébergement ====
+@bot.tree.command(name="hebergement", description="Indiquer qu'une tenue est en cours d'hébergement", guild=discord.Object(id=GUILD_ID))
+async def hebergement(interaction: discord.Interaction):
+    await interaction.response.send_message("-# Tenue en cours d'hébergement")
 
 # ==== NUMÉROTATION ====
 async def get_next_ticket_number(guild: discord.Guild):
@@ -506,4 +510,5 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
 
