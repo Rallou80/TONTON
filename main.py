@@ -274,6 +274,8 @@ async def commande_terminee(interaction: discord.Interaction, numero: int):
     if not channel:
         return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
+    client_mention = f"<@{channel.topic}>" if channel.topic else "inconnu"
+    
     embed = discord.Embed(
         title=f"Commande CMD-{numero}",
         description="Statut : 🟢 Terminée !\nQuand êtes-vous disponible pour que nous procédions à la vente?\n{client_mention}",
