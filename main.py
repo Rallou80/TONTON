@@ -16,6 +16,7 @@ SALON_CLIENTS_ID = 1399021433325223946    # /sonnette
 ROLE_CROUPIER_ID = 1399857058383138876   #id du rôles à mentionner à la sonnette
 STAFF_ROLE_ID = 1399016778553753731 #id du rôle à ajouter aux tickets
 CATEGORY_ID = 1399021383262011402 # id de la catégorie où sont créer les tickets
+AVIS_ID = 1399029522816565299 # Id du salon avis
 
 ROLE_CASINO_ID = 1399858237599256596 #id du rôle ouverture
 ROLE_PAUSE_ID = 1399858167852040294 #id du rôle pause
@@ -290,15 +291,98 @@ async def commande_terminee(interaction: discord.Interaction, numero: int):
     await channel.send(embed=embed)
     await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué terminé.", ephemeral=True)
 
-@bot.tree.command(name="del", description="Supprimer un ticket", guild=discord.Object(id=GUILD_ID))
+# ==== SYSTEME DE CLOTURE DE TICKET ====
+
+class AvisModal(discord.ui.Modal, title="⭐ Donne ton avis"):
+    def __init__(self, stars: int, client_id: int, staff_id: int, channel: discord.TextChannel):
+        super().__init__(timeout=None)
+        self.stars = stars
+        self.client_id = client_id
+        self.staff_id = staff_id
+        self.channel = channel
+
+        self.comment = ui.TextInput(
+            label="Ton avis (facultatif)",
+            style=discord.TextStyle.paragraph,
+            required=False,
+            placeholder="Partage ton ressenti..."
+        )
+        self.add_item(self.comment)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Embed récapitulatif
+        avis_channel = interaction.guild.get_channel(AVIS_ID)
+        embed = discord.Embed(
+            title="📝 Nouvel avis client",
+            color=discord.Color.gold()
+        )
+        embed.add_field(name="Client", value=f"<@{self.client_id}>", inline=True)
+        embed.add_field(name="Employé", value=f"<@{self.staff_id}>", inline=True)
+        embed.add_field(name="Note", value="⭐" * self.stars, inline=False)
+        embed.add_field(name="Commentaire", value=self.comment.value or "Aucun", inline=False)
+
+        if avis_channel:
+            await avis_channel.send(embed=embed)
+
+        # Confirmation + suppression du salon
+        await interaction.response.send_message("✅ Merci pour ton avis ! Le ticket va être clôturé.", ephemeral=True)
+        await self.channel.delete()
+
+
+class EtoilesView(discord.ui.View):
+    def __init__(self, client_id: int, staff_id: int, channel: discord.TextChannel):
+        super().__init__(timeout=None)
+        self.client_id = client_id
+        self.staff_id = staff_id
+        self.channel = channel
+
+        for i in range(1, 6):
+            self.add_item(self.StarButton(i))
+
+    class StarButton(discord.ui.Button):
+        def __init__(self, stars: int):
+            super().__init__(label=f"{stars} ⭐", style=discord.ButtonStyle.secondary)
+            self.stars = stars
+
+        async def callback(self, interaction: discord.Interaction):
+            parent: EtoilesView = self.view
+            await interaction.response.send_modal(AvisModal(self.stars, parent.client_id, parent.staff_id, parent.channel))
+
+
+class ClotureView(discord.ui.View):
+    def __init__(self, client_id: int, staff_id: int, channel: discord.TextChannel):
+        super().__init__(timeout=None)
+        self.client_id = client_id
+        self.staff_id = staff_id
+        self.channel = channel
+
+    @discord.ui.button(label="Clôturer le ticket", style=discord.ButtonStyle.danger)
+    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("⭐ Choisis une note :", view=EtoilesView(self.client_id, self.staff_id, self.channel))
+
+
+# ==== COMMANDE MODIFIEE ====
+@bot.tree.command(name="del", description="Clôturer un ticket avec avis", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
 async def commande_supprimer(interaction: discord.Interaction, numero: int):
     channel = discord.utils.get(interaction.guild.channels, name=f"cmd-{numero}")
     if not channel:
         return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
-    await channel.delete()
-    await interaction.response.send_message(f"🗑️ Ticket CMD-{numero} supprimé.", ephemeral=True)
+    # Récupère le client depuis le topic du salon
+    try:
+        client_id = int(channel.topic)
+    except:
+        client_id = interaction.user.id  # fallback
+
+    staff_id = interaction.user.id
+
+    await interaction.response.send_message(
+        f"🔒 Veux-tu clôturer le ticket {channel.mention} ?", 
+        view=ClotureView(client_id, staff_id, channel),
+        ephemeral=True
+    )
+
 
 # ==== CLASSE : CasinoControlView (anciennement CasinoView, renommée) ====
 class CasinoControlView(discord.ui.View):
@@ -510,5 +594,6 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
 
 
