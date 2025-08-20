@@ -316,7 +316,7 @@ class AvisModal(discord.ui.Modal, title="⭐ Donne ton avis"):
             title="📝 Nouvel avis client",
             color=discord.Color.gold()
         )
-        embed.add_field(name="Client", value=f"<@{self.client_id}>", inline=True)
+        embed.add_field(name="Client", value=f"<@{interaction.user.id}>", inline=True)
         embed.add_field(name="Employé", value=f"<@{self.staff_id}>", inline=True)
         embed.add_field(name="Note", value="⭐" * self.stars, inline=False)
         embed.add_field(name="Commentaire", value=self.comment.value or "Aucun", inline=False)
@@ -593,6 +593,7 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
 
 
 
