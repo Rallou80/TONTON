@@ -379,8 +379,7 @@ async def commande_supprimer(interaction: discord.Interaction, numero: int):
 
     await interaction.response.send_message(
         f"🔒 Veux-tu clôturer le ticket {channel.mention} ?", 
-        view=ClotureView(client_id, staff_id, channel),
-        ephemeral=True
+        view=ClotureView(client_id, staff_id, channel)
     )
 
 
@@ -594,6 +593,7 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
 
 
 
