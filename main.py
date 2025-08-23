@@ -408,7 +408,11 @@ class ClotureView(discord.ui.View):
 @bot.tree.command(name="del", description="Clôturer un ticket avec avis", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
 async def commande_supprimer(interaction: discord.Interaction, numero: int):
-    channel = discord.utils.get(interaction.guild.channels, name=f"cmd-{numero}")
+     # Recherche du channel avec ou sans pastille
+    channel = next(
+        (ch for ch in interaction.guild.channels if ch.name.endswith(f"cmd-{numero}")),
+        None
+    )
     if not channel:
         return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
@@ -644,6 +648,7 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
 
 
 
