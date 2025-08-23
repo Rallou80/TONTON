@@ -67,7 +67,7 @@ async def hebergement(interaction: discord.Interaction, numero: int):
 
     await channel.edit(name=new_name)
 
-    await interaction.response.send_message(f"⚡ Ticket {new_name} est maintenant en hébergement.", ephemeral=True)
+    await interaction.response.send_message("-# Tenue en cours d'hébergement")
 
 
 # ==== NUMÉROTATION ====
@@ -648,6 +648,7 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
 
 
 
