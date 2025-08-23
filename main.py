@@ -60,7 +60,7 @@ async def hebergement(interaction: discord.Interaction, numero: int):
 
     # Retirer les anciennes pastilles et ajouter 🟡
     new_name = channel.name
-    for emoji in ["🟠-", "🟢-", "🟡-"]:
+    for emoji in ["🟠-", "🟢-", "🟡-", "❓-"]:
         if new_name.startswith(emoji):
             new_name = new_name.replace(emoji, "")
     new_name = f"🟡-{new_name}"
@@ -75,7 +75,7 @@ async def get_next_ticket_number(guild: discord.Guild):
     category = guild.get_channel(CATEGORY_ID)
     if not category:
         return 1
-    ticket_channels = [ch for ch in category.channels if isinstance(ch, discord.TextChannel) and ch.name.startswith("cmd-")]
+    ticket_channels = [ch for ch in category.channels if isinstance(ch, discord.TextChannel) and ch.name.startswith("❓-cmd-")]
     if not ticket_channels:
         return 1
     numbers = []
@@ -279,12 +279,12 @@ async def commande_en_cours(interaction: discord.Interaction, numero: int):
     if not channel:
         return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
-    # Ajouter pastille orange et retirer pastille verte si nécessaire
+    # Retirer les anciennes pastilles et ajouter 🟠
     new_name = channel.name
-    if new_name.startswith("🟢-"):
-        new_name = new_name.replace("🟢-", "🟠-")
-    elif not new_name.startswith("🟠-"):
-        new_name = f"🟠-{new_name}"
+    for emoji in ["🟠-", "🟢-", "🟡-", "❓-"]:
+        if new_name.startswith(emoji):
+            new_name = new_name.replace(emoji, "")
+    new_name = f"🟠-{new_name}"
 
     await channel.edit(name=new_name)
 
@@ -312,12 +312,12 @@ async def commande_terminee(interaction: discord.Interaction, numero: int):
     if not channel:
         return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
-    # Ajouter pastille verte et retirer pastille orange si nécessaire
+    # Retirer les anciennes pastilles et ajouter 🟢
     new_name = channel.name
-    if new_name.startswith("🟠-"):
-        new_name = new_name.replace("🟠-", "🟢-")
-    elif not new_name.startswith("🟢-"):
-        new_name = f"🟢-{new_name}"
+    for emoji in ["🟠-", "🟢-", "🟡-", "❓-"]:
+        if new_name.startswith(emoji):
+            new_name = new_name.replace(emoji, "")
+    new_name = f"🟢-{new_name}"
 
     await channel.edit(name=new_name)
 
@@ -423,12 +423,13 @@ async def commande_supprimer(interaction: discord.Interaction, numero: int):
         client_id = interaction.user.id  # fallback
 
     staff_id = interaction.user.id
-    # Modifier le nom du ticket pour ajouter 🚫
+    # Retirer les anciennes pastilles et ajouter 🚫
     new_name = channel.name
-    for emoji in ["🟠-", "🟢-", "🟡-"]:
+    for emoji in ["🟠-", "🟢-", "🟡-", "❓-", "🚫-"]:
         if new_name.startswith(emoji):
             new_name = new_name.replace(emoji, "")
     new_name = f"🚫-{new_name}"
+
     await channel.edit(name=new_name)
 
 
@@ -648,6 +649,7 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
 
 
 
