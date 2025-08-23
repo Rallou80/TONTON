@@ -252,44 +252,68 @@ async def commande(interaction: discord.Interaction):
 @bot.tree.command(name="2", description="Marquer une commande en cours", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
 async def commande_en_cours(interaction: discord.Interaction, numero: int):
-    channel = discord.utils.get(interaction.guild.channels, name=f"cmd-{numero}")
+    # Recherche du channel avec ou sans pastille
+    channel = next(
+        (ch for ch in interaction.guild.channels if ch.name.endswith(f"cmd-{numero}")),
+        None
+    )
     if not channel:
         return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
+    # Ajouter pastille orange et retirer pastille verte si nécessaire
+    new_name = channel.name
+    if new_name.startswith("🟢-"):
+        new_name = new_name.replace("🟢-", "🟠-")
+    elif not new_name.startswith("🟠-"):
+        new_name = f"🟠-{new_name}"
+
+    await channel.edit(name=new_name)
+
     client_mention = f"<@{channel.topic}>" if channel.topic else "inconnu"
 
-     # Création de l'embed
     embed = discord.Embed(
-        title=f"Commande CMD-{numero}",
+        title=f"Commande {new_name}",
         description=f"Statut : 🟡 En cours\n{interaction.user.mention} prend en charge votre demande.",
-        color=discord.Color.yellow()
+        color=discord.Color.orange()
     )
     embed.set_footer(text=f"L'équipe Du Blouson D'Tonton")
 
-    # Envoi de l'embed dans le channel
     await channel.send(embed=embed)
-    
-    # Réponse éphémère à l'utilisateur
-    await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué en cours.", ephemeral=True)
+    await interaction.response.send_message(f"✅ Ticket {new_name} marqué en cours.", ephemeral=True)
+
 
 @bot.tree.command(name="3", description="Marquer une commande terminée", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(numero="Numéro de la commande")
 async def commande_terminee(interaction: discord.Interaction, numero: int):
-    channel = discord.utils.get(interaction.guild.channels, name=f"cmd-{numero}")
+    # Recherche du channel avec ou sans pastille
+    channel = next(
+        (ch for ch in interaction.guild.channels if ch.name.endswith(f"cmd-{numero}")),
+        None
+    )
     if not channel:
         return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
 
+    # Ajouter pastille verte et retirer pastille orange si nécessaire
+    new_name = channel.name
+    if new_name.startswith("🟠-"):
+        new_name = new_name.replace("🟠-", "🟢-")
+    elif not new_name.startswith("🟢-"):
+        new_name = f"🟢-{new_name}"
+
+    await channel.edit(name=new_name)
+
     client_mention = f"<@{channel.topic}>" if channel.topic else "inconnu"
-    
+
     embed = discord.Embed(
-        title=f"Commande CMD-{numero}",
+        title=f"Commande {new_name}",
         description=f"Statut : 🟢 Terminée !\nQuand êtes-vous disponible pour que nous procédions à la vente?\n{client_mention}",
         color=discord.Color.green()
     )
     embed.set_footer(text=f"L'équipe Du Blouson D'Tonton")
 
     await channel.send(embed=embed)
-    await interaction.response.send_message(f"✅ Ticket CMD-{numero} marqué terminé.", ephemeral=True)
+    await interaction.response.send_message(f"✅ Ticket {new_name} marqué terminé.", ephemeral=True)
+
 
 # ==== SYSTEME DE CLOTURE DE TICKET ====
 
