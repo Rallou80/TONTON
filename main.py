@@ -423,9 +423,10 @@ async def commande_supprimer(interaction: discord.Interaction, numero: int):
     new_name = channel.name
     for emoji in ["🟠-", "🟢-", "🟡-"]:
         if new_name.startswith(emoji):
-        new_name = new_name.replace(emoji, "")
+            new_name = new_name.replace(emoji, "")
     new_name = f"🚫-{new_name}"
     await channel.edit(name=new_name)
+
 
     await interaction.response.send_message(
         f"🔒 Veux-tu clôturer le ticket {channel.mention} ?", 
@@ -643,6 +644,7 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
 
 
 
