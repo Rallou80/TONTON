@@ -48,8 +48,27 @@ def keep_alive():
     t.start()
 # ==== Hébergement ====
 @bot.tree.command(name="hebergement", description="Indiquer qu'une tenue est en cours d'hébergement", guild=discord.Object(id=GUILD_ID))
-async def hebergement(interaction: discord.Interaction):
-    await interaction.response.send_message("-# Tenue en cours d'hébergement")
+@app_commands.describe(numero="Numéro du ticket à mettre en hébergement")
+async def hebergement(interaction: discord.Interaction, numero: int):
+    # Recherche du channel avec ou sans pastille
+    channel = next(
+        (ch for ch in interaction.guild.channels if ch.name.endswith(f"cmd-{numero}")),
+        None
+    )
+    if not channel:
+        return await interaction.response.send_message("❌ Ticket introuvable", ephemeral=True)
+
+    # Retirer les anciennes pastilles et ajouter 🟡
+    new_name = channel.name
+    for emoji in ["🟠-", "🟢-", "🟡-"]:
+        if new_name.startswith(emoji):
+            new_name = new_name.replace(emoji, "")
+    new_name = f"🟡-{new_name}"
+
+    await channel.edit(name=new_name)
+
+    await interaction.response.send_message(f"⚡ Ticket {new_name} est maintenant en hébergement.", ephemeral=True)
+
 
 # ==== NUMÉROTATION ====
 async def get_next_ticket_number(guild: discord.Guild):
@@ -273,7 +292,7 @@ async def commande_en_cours(interaction: discord.Interaction, numero: int):
 
     embed = discord.Embed(
         title=f"Commande {new_name}",
-        description=f"Statut : 🟡 En cours\n{interaction.user.mention} prend en charge votre demande.",
+        description=f"Statut : 🟠 En cours\n{interaction.user.mention} prend en charge votre demande.",
         color=discord.Color.orange()
     )
     embed.set_footer(text=f"L'équipe Du Blouson D'Tonton")
@@ -400,6 +419,13 @@ async def commande_supprimer(interaction: discord.Interaction, numero: int):
         client_id = interaction.user.id  # fallback
 
     staff_id = interaction.user.id
+    # Modifier le nom du ticket pour ajouter 🚫
+    new_name = channel.name
+    for emoji in ["🟠-", "🟢-", "🟡-"]:
+        if new_name.startswith(emoji):
+        new_name = new_name.replace(emoji, "")
+    new_name = f"🚫-{new_name}"
+    await channel.edit(name=new_name)
 
     await interaction.response.send_message(
         f"🔒 Veux-tu clôturer le ticket {channel.mention} ?", 
@@ -617,6 +643,7 @@ async def on_ready():
 # ==== LANCEMENT FINAL ====
 keep_alive()
 bot.run(TOKEN)
+
 
 
 
