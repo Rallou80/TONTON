@@ -75,17 +75,26 @@ async def get_next_ticket_number(guild: discord.Guild):
     category = guild.get_channel(CATEGORY_ID)
     if not category:
         return 1
-    ticket_channels = [ch for ch in category.channels if isinstance(ch, discord.TextChannel) and ch.name.startswith("❓-cmd-")]
+
+    prefixes = ["❓-", "🟠-", "🟢-", "🟡-", "🚫-"]
+    ticket_channels = [
+        ch for ch in category.channels
+        if isinstance(ch, discord.TextChannel) and any(ch.name.startswith(pref) for pref in prefixes)
+    ]
+
     if not ticket_channels:
         return 1
+
     numbers = []
     for ch in ticket_channels:
         try:
-            num = int(ch.name.split("-")[1])
+            num = int(ch.name.split("-")[2])  # ex: 🟠-cmd-4 → ["🟠", "cmd", "4"]
             numbers.append(num)
         except:
             pass
+
     return max(numbers) + 1 if numbers else 1
+
 
 # ==== FORMULAIRES ====
 class VetementModal(ui.Modal, title="👕 Commande Vêtement"):
@@ -127,7 +136,8 @@ class VetementModal(ui.Modal, title="👕 Commande Vêtement"):
     async def on_submit(self, interaction: discord.Interaction):
         guild = interaction.guild
         number = await get_next_ticket_number(guild)
-        ticket_name = f"cmd-{number}"
+        ticket_name = f"❓-cmd-{number}"
+
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
