@@ -33,6 +33,19 @@ intents.members = True
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# ==== FLASK KEEP ALIVE ====
+app = Flask("")
+
+@app.route("/")
+def home():
+    return "Bot actif."
+
+def run():
+    app.run(host="0.0.0.0", port=8080)
+
+def keep_alive():
+    t = threading.Thread(target=run)
+    t.start()
 # ==== Hébergement ====
 @bot.tree.command(name="hebergement", description="Indiquer qu'une tenue est en cours d'hébergement", guild=discord.Object(id=GUILD_ID))
 async def hebergement(interaction: discord.Interaction):
@@ -578,9 +591,8 @@ async def on_ready():
     print(f"🤖 Connecté en tant que {bot.user}")
 
 # ==== LANCEMENT FINAL ====
+keep_alive()
 bot.run(TOKEN)
-
-
 
 
 
