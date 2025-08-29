@@ -1,9 +1,10 @@
 import discord
 from discord.ext import commands
 from discord import app_commands, ui
-from discord.ui import View, Button, Select # Import manquant corrigé
+from discord.ui import View, Button, Select
 import random
 import threading
+import asyncio
 from flask import Flask
 import os
 
@@ -11,17 +12,17 @@ import os
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD_ID = 1399014657209008168  #id du serveur
 
-ANNONCE_CHANNEL_ID = 1399018858131624027  # embed d'ouverture et fermeture
-SALON_CLIENTS_ID = 1399021433325223946    # /sonnette
-ROLE_CROUPIER_ID = 1399857058383138876   #id du rôles à mentionner à la sonnette
-STAFF_ROLE_ID = 1399016778553753731 #id du rôle à ajouter aux tickets
-CATEGORY_ID = 1399021383262011402 # id de la catégorie où sont créer les tickets
-AVIS_ID = 1399029522816565299 # Id du salon avis
+ANNONCE_CHANNEL_ID = 1399018858131624027
+SALON_CLIENTS_ID = 1399021433325223946
+ROLE_CROUPIER_ID = 1399857058383138876
+STAFF_ROLE_ID = 1399016778553753731
+CATEGORY_ID = 1399021383262011402
+AVIS_ID = 1399029522816565299
 
-ROLE_CASINO_ID = 1399858237599256596 #id du rôle ouverture
-ROLE_PAUSE_ID = 1399858167852040294 #id du rôle pause
-SALON_ROUE_ID = 1399859154600071199 #roue (clients)
-SALON_LOGS_ID = 1399859434968322078 #roue (staff)
+ROLE_CASINO_ID = 1399858237599256596
+ROLE_PAUSE_ID = 1399858167852040294
+SALON_ROUE_ID = 1399859154600071199
+SALON_LOGS_ID = 1399859434968322078
 
 GIF_URL = "https://raw.githubusercontent.com/Rallou80/TONTON/main/royal.png"
 TONTON_IMAGE_URL = "https://raw.githubusercontent.com/Rallou80/TONTON/main/tontonGOAT.png"
@@ -658,7 +659,12 @@ async def on_ready():
 
 # ==== LANCEMENT FINAL ====
 keep_alive()
-bot.run(TOKEN)
+
+async def main():
+    await asyncio.sleep(10)  # pause douce sans bloquer l’event loop
+    await bot.start(TOKEN)
+
+asyncio.run(main())
 
 
 
