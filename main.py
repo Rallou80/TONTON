@@ -648,13 +648,10 @@ async def resetroue(interaction: discord.Interaction):
 
         
 # ==== Event on_ready ====
+print("TOKEN chargé ?", "OUI" if TOKEN else "NON")
+
 @bot.event
 async def on_ready():
-    try:
-        synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
-        print(f"✅ Commandes slash synchronisées : {len(synced)}")
-    except Exception as e:
-        print(f"❌ Erreur de synchronisation : {e}")
     print(f"🤖 Connecté en tant que {bot.user}")
 
 # ==== LANCEMENT FINAL ====
@@ -665,6 +662,7 @@ async def main():
     await bot.start(TOKEN)
 
 asyncio.run(main())
+
 
 
 
