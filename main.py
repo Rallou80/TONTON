@@ -647,21 +647,43 @@ async def resetroue(interaction: discord.Interaction):
 
 
         
-# ==== Event on_ready ====
-print("TOKEN chargé ?", "OUI" if TOKEN else "NON")
-
+# ==== EVENTS ====
 @bot.event
 async def on_ready():
-    print(f"🤖 Connecté en tant que {bot.user}")
+    print("✅ Bot connecté avec succès")
+    print(f"🤖 Connecté en tant que {bot.user} (ID: {bot.user.id})")
+    try:
+        synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+        print(f"📌 Commandes slash synchronisées : {len(synced)}")
+    except Exception as e:
+        print(f"⚠️ Erreur lors de la sync : {e}")
 
-# ==== LANCEMENT FINAL ====
+# ==== MAIN (avec gestion rate-limit) ====
 keep_alive()
 
-async def main():
-    await asyncio.sleep(10)  # pause douce sans bloquer l’event loop
-    await bot.start(TOKEN)
+async def run_bot():
+    delay = 15  # première attente avant connexion
+    while True:
+        try:
+            print(f"🔌 Connexion à Discord dans {delay}s...")
+            await asyncio.sleep(delay)
+            await bot.start(TOKEN)
+        except discord.HTTPException as e:
+            if e.status == 429:  # rate limited
+                print(f"⚠️ Rate limited ! Attente {delay*2}s avant retry...")
+                delay = min(delay * 2, 600)  # max 10 minutes
+            else:
+                print(f"❌ Erreur HTTP : {e}")
+                delay = 60
+        except Exception as e:
+            print(f"❌ Erreur inattendue : {e}")
+            delay = 60
+        finally:
+            if bot.is_closed():
+                print("🔁 Bot fermé, tentative de reconnexion...")
 
-asyncio.run(main())
+asyncio.run(run_bot())
+
 
 
 
